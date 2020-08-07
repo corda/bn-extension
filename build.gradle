@@ -154,30 +154,24 @@ configure(publishProjects) { subproject ->
     }
 }
 
-def artifactoryRepoKey = System.getenv('CORDA_ARTIFACTORY_REPOKEY') ?: System.getProperty('corda.artifactory.repokey')
 
-// Publish artifacts only if the projectVersion ends with -SNAPSHOT, or if the TC release build is running and the
-// version does NOT end with -SNAPSHOT.
-if ((ext.projectVersion ?: "").endsWith("-SNAPSHOT") || (artifactoryRepoKey ?: "").endsWith("-releases")) {
-    artifactory {
-        publish {
-            contextUrl = ext.artifactoryContextUrl
-            repository {
-                repoKey = artifactoryRepoKey
-                username = cordaArtifactoryUsername
-                password = cordaArtifactoryPassword
-            }
+artifactory {
+    publish {
+        contextUrl = ext.artifactoryContextUrl
+        repository {
+            repoKey = System.getenv('CORDA_ARTIFACTORY_REPOKEY') ?: System.getProperty('corda.artifactory.repokey', 'corda-dev')
+            username = cordaArtifactoryUsername
+            password = cordaArtifactoryPassword
+        }
 
-            defaults {
-                if (publishProjects.contains(project)) {
-                    publications(project.name)
-                }
+        defaults {
+            if (publishProjects.contains(project)) {
+                publications(project.name)
             }
         }
-    }
-} else {
-    println("Skipping publish to Artifactory for '$projectVersion'.")
+    } 
 }
+
 
 wrapper {
     gradleVersion = "6.1.1"
