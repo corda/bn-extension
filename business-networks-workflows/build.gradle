@@ -1,15 +1,17 @@
 apply plugin: 'kotlin'
-apply plugin: 'net.corda.plugins.quasar-utils'
 apply plugin: 'net.corda.plugins.cordapp'
+apply plugin: 'net.corda.plugins.quasar-utils'
 
 description 'Corda Business Networks'
 
 dependencies {
-    cordaCompile project(':core')
-    cordaCompile project(':business-networks:business-networks-contracts')
-
-    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
-
-    // Bring in the MockNode infrastructure for writing protocol unit tests.
-    testCompile project(":node-driver")
+    cordaCompile "$cordaReleaseGroup:corda-core:$cordaVersion"
+    cordapp project(":business-networks-contracts")
+    
+    testCompile "$cordaReleaseGroup:corda-core-test-utils:$cordaVersion"
+    testCompile "$cordaReleaseGroup:corda-node-driver:$cordaVersion"
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+    testCompile "com.nhaarman:mockito-kotlin:$mockitoKotlinVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "junit:junit:$junitVersion"
 }
