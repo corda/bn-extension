@@ -11,6 +11,11 @@ dependencies {
     cordapp project(':business-networks-demo:business-networks-demo-workflows')
 }
 
+jar {
+    // Prevent the root project from building an unwanted dummy CorDapp.
+    enabled = false
+}
+
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     nodeDefaults {
         projectCordapp {

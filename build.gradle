@@ -131,26 +131,24 @@ configure(publishProjects) { subproject ->
 
     publishing {
         publications {
-            if (!subproject.name.endsWith("demo")) {
-                create(subproject.name, MavenPublication) {
-                    from components.java
-                    groupId subproject.group
-                    artifactId subproject.name
-                    artifact tasks.sourceJar
-                    artifact tasks.javadocJar
+            create(subproject.name, MavenPublication) {
+                from components.java
+                groupId subproject.group
+                artifactId subproject.name
+                artifact tasks.sourceJar
+                artifact tasks.javadocJar
 
-                    pom {
-                        description = subproject.description
-                        licenses {
-                            license {
-                                name = 'Apache-2.0'
-                                url = 'https://www.apache.org/licenses/LICENSE-2.0'
-                                distribution = 'repo'
-                            }
+                pom {
+                    description = subproject.description
+                    licenses {
+                        license {
+                            name = 'Apache-2.0'
+                            url = 'https://www.apache.org/licenses/LICENSE-2.0'
+                            distribution = 'repo'
                         }
                     }
                 }
-            }
+            }        
         }
     }
 }
