@@ -4,13 +4,15 @@
 
 This demo showcases integration of Business Networks solution inside a CorDapp designed for issuing and 
 settling loans between banks. It brings up 4 nodes: a notary and 3 nodes representing banks. Each bank node 
-must be active member of the same Business Network, have Swift Business Identifier Code (BIC) as their 
+must be active member of the same Business Network, have a Swift Business Identifier Code (BIC) as their 
 business identity and loan issuance initiators must be granted permission to do so.
 
 ## Flows
 
-RPC exposed flows can be divided into 2 group: standard Business Network management and CorDapp specific ones. 
-CorDapp specific ones are:
+RPC exposed flows can be divided into 2 group: standard Business Network management (covered in greater detail in 
+Business Networks documentation) and CorDapp specific ones. 
+
+### CorDapp Specific Flows
 - `AssignBICFlow` assigns BIC as business identity of a bank node
     - Usage: `flow start AssignBICFlow membershipId: <UNIQUE_IDENTIFIER>, bic: <STRING>, notary: <OPTIONAL_NOTARY_IDENTITY>`
 - `AssignLoanIssuerRoleFlow` grants loan issuance permission to a calling party
