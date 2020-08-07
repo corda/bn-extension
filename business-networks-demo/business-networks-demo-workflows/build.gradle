@@ -10,11 +10,11 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 
     // Corda integration dependencies
-    cordaCompile project(':business-networks-workflows')
-    compile("$cordaReleaseGroup:corda-core:$cordaVersion") {
+    cordapp project(':business-networks-workflows')
+    cordaCompile("$cordaReleaseGroup:corda-core:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
     }
-    cordaCompile project(':business-networks-demo:business-networks-demo-contracts')
+    cordapp project(':business-networks-demo:business-networks-demo-contracts')
 
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
 

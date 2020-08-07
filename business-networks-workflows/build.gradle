@@ -19,7 +19,13 @@ dependencies {
     cordaCompile("$cordaReleaseGroup:corda-core:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
     }
+
+    cordaRuntime("$cordaReleaseGroup:corda:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    
     cordapp project(":business-networks-contracts")
+
     
     testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
