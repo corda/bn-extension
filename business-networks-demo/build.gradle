@@ -6,19 +6,9 @@ apply plugin: 'net.corda.plugins.cordformation'
 
 description 'Corda Business Networks Integration demo'
 
-cordapp {
-    info {
-        name "Corda Business Networks Integration Demo"
-        vendor "R3"
-        targetPlatformVersion cordaPlatformVersion.toInteger()
-        minimumPlatformVersion cordaPlatformVersion.toInteger()
-    }
-}
-
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-
-
+    
     cordapp project(':business-networks-contracts')
     cordapp project(':business-networks-workflows')
     cordapp project(':business-networks-demo:business-networks-demo-contracts')

@@ -5,10 +5,16 @@ apply plugin: 'net.corda.plugins.cordapp'
 description 'Corda Business Networks Integration Demo - contracts'
 
 dependencies {
-    cordaCompile "$cordaReleaseGroup:corda-core:$cordaVersion"
+    cordaCompile("$cordaReleaseGroup:corda-core:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
     cordapp project(':business-networks-contracts')
-    testCompile "$cordaReleaseGroup:corda-core-test-utils:$cordaVersion"
-    testCompile "$cordaReleaseGroup:corda-node-driver:$cordaVersion"
+    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
     testCompile "com.nhaarman:mockito-kotlin:$mockitoKotlinVersion"
     testCompile "org.mockito:mockito-core:$mockitoVersion"

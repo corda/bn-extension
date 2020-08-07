@@ -11,13 +11,19 @@ dependencies {
 
     // Corda integration dependencies
     cordaCompile project(':business-networks-workflows')
-    cordaCompile "$cordaReleaseGroup:corda-core:$cordaVersion"
+    compile("$cordaReleaseGroup:corda-core:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
     cordaCompile project(':business-networks-demo:business-networks-demo-contracts')
 
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
 
-    testCompile "$cordaReleaseGroup:corda-core-test-utils:$cordaVersion"
-    testCompile "$cordaReleaseGroup:corda-node-driver:$cordaVersion"
+    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
 }
 
 cordapp {

@@ -4,10 +4,27 @@ apply plugin: 'net.corda.plugins.cordapp'
 
 description 'Corda Business Networks Contracts'
 
+cordapp {
+    targetPlatformVersion cordaPlatformVersion.toInteger()
+    minimumPlatformVersion cordaPlatformVersion.toInteger()
+    contract {
+        name "Business Networks Showcase"
+        vendor "Corda Open Source"
+        versionId 1
+        licence "Open Source (Apache 2)"
+    }
+}
+
 dependencies {
-    cordaCompile "$cordaReleaseGroup:corda-core:$cordaVersion"
-    testCompile "$cordaReleaseGroup:corda-core-test-utils:$cordaVersion"
-    testCompile "$cordaReleaseGroup:corda-node-driver:$cordaVersion"
+    cordaCompile("$cordaReleaseGroup:corda-core:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
     testCompile "com.nhaarman:mockito-kotlin:$mockitoKotlinVersion"
     testCompile "org.mockito:mockito-core:$mockitoVersion"

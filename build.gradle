@@ -1,11 +1,29 @@
 buildscript {
-
+    Properties constants = new Properties()
+    file("$projectDir/gradle.properties").withInputStream { constants.load(it) }
+    
+    ext {
+        corda_release_group = constants.getProperty("cordaReleaseGroup")
+        corda_release_version = constants.getProperty("cordaVersion")
+        corda_core_release_group =  constants.getProperty("cordaReleaseGroup")
+        corda_core_release_version = constants.getProperty("cordaVersion")
+        corda_gradle_plugins_version = constants.getProperty("cordaGradlePluginsVersion")
+        kotlin_version = constants.getProperty("kotlinVersion")
+        junit_version = constants.getProperty("junitVersion")
+        quasar_version = constants.getProperty("quasarVersion")
+        quasar_classifier = constants.getProperty('quasarClassifier')
+        log4j_version = constants.getProperty("log4jVersion")
+        slf4j_version = constants.getProperty("slf4jVersion")
+        corda_platform_version = constants.getProperty("platformVersion")
+    }
+    
     repositories {
         mavenLocal()
         mavenCentral()
         jcenter()
         maven { url "$artifactoryContextUrl/corda" }
         maven { url "$artifactoryContextUrl/corda-releases" }
+        maven { url "$artifactoryContextUrl/corda-dev" }
         maven { url 'https://repo.gradle.org/gradle/libs-releases' }
     }
 
@@ -92,20 +110,15 @@ apply plugin: 'net.corda.plugins.quasar-utils'
 
 dependencies {
     // Corda dependencies.
-    cordaCompile "$cordaReleaseGroup:corda-core:$cordaVersion"
-    cordaCompile "$cordaReleaseGroup:corda-node-api:$cordaVersion"
+    cordaCompile("$cordaReleaseGroup:corda-core:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    cordaCompile("$cordaReleaseGroup:corda-node-api:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
     cordaRuntime "$cordaReleaseGroup:corda:$cordaVersion"
 }
 
-
-cordapp {
-    info {
-        name "Business Networks Showcase"
-        vendor "Corda Open Source"
-        targetPlatformVersion cordaPlatformVersion.toInteger()
-        minimumPlatformVersion cordaPlatformVersion.toInteger()
-    }
-}
 
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     nodeDefaults {
