@@ -1,0 +1,5 @@
+include 'business-networks-contracts'
+include 'business-networks-workflows'
+include 'business-networks-demo'
+include 'business-networks-demo:business-networks-demo-contracts'
+include 'business-networks-demo:business-networks-demo-workflows'

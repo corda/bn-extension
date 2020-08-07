@@ -1,27 +1,25 @@
-apply plugin: 'kotlin'
-apply plugin: 'idea'
-apply plugin: 'net.corda.plugins.quasar-utils'
-apply plugin: 'net.corda.plugins.cordapp'
-
 description 'Corda Business Networks Integration Demo - workflows'
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 
     // Corda integration dependencies
-    cordaCompile project(':business-networks:business-networks-workflows')
-    cordaCompile project(':core')
-    cordaCompile project(':samples:business-networks-demo:business-networks-demo-contracts')
+    cordapp project(':business-networks-workflows')
+    cordapp project(':business-networks-demo:business-networks-demo-contracts')
 
-    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
 
-    // Bring in the MockNode infrastructure for writing protocol unit tests.
-    testCompile project(":node-driver")
+    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
 }
 
 cordapp {
-    targetPlatformVersion corda_platform_version.toInteger()
-    minimumPlatformVersion 1
+    targetPlatformVersion cordaPlatformVersion.toInteger()
+    minimumPlatformVersion cordaPlatformVersion.toInteger()
     workflow {
         name "Corda Business Networks Integration Demo"
         versionId 1
