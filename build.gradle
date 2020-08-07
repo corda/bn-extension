@@ -14,7 +14,6 @@ buildscript {
         classpath "net.corda.plugins:cordformation:$cordaGradlePluginsVersion"
         classpath "net.corda.plugins:quasar-utils:$cordaGradlePluginsVersion"
         classpath "net.corda.plugins:cordapp:$cordaGradlePluginsVersion"
-//        classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokkaVersion"
         classpath "org.jetbrains.kotlin:kotlin-noarg:$kotlinVersion"
     }
 }
@@ -103,8 +102,8 @@ cordapp {
     info {
         name "Business Networks Showcase"
         vendor "Corda Open Source"
-        targetPlatformVersion 8
-        minimumPlatformVersion 8
+        targetPlatformVersion cordaPlatformVersion.toInteger()
+        minimumPlatformVersion cordaPlatformVersion.toInteger()
     }
 }
 

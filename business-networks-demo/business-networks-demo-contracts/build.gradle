@@ -5,19 +5,19 @@ apply plugin: 'net.corda.plugins.cordapp'
 description 'Corda Business Networks Integration Demo - contracts'
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    cordaCompile project(':business-networks:business-networks-contracts')
-    cordaCompile project(':core')
-
-    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
-
-    // Bring in the MockNode infrastructure for writing protocol unit tests.
-    testCompile project(":node-driver")
+    cordaCompile "$cordaReleaseGroup:corda-core:$cordaVersion"
+    cordapp project(':business-networks-contracts')
+    testCompile "$cordaReleaseGroup:corda-core-test-utils:$cordaVersion"
+    testCompile "$cordaReleaseGroup:corda-node-driver:$cordaVersion"
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+    testCompile "com.nhaarman:mockito-kotlin:$mockitoKotlinVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "junit:junit:$junitVersion"
 }
 
 cordapp {
-    targetPlatformVersion corda_platform_version.toInteger()
-    minimumPlatformVersion 1
+    targetPlatformVersion cordaPlatformVersion.toInteger()
+    minimumPlatformVersion cordaPlatformVersion.toInteger()
     contract {
         name "Corda Business Networks Integration Demo"
         versionId 1
