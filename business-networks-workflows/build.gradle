@@ -1,7 +1,3 @@
-apply plugin: 'kotlin'
-apply plugin: 'net.corda.plugins.cordapp'
-apply plugin: 'net.corda.plugins.quasar-utils'
-
 description 'Corda Business Networks'
 
 cordapp {
@@ -16,10 +12,6 @@ cordapp {
 }
 
 dependencies {
-    cordaCompile("$cordaReleaseGroup:corda-core:$cordaVersion") {
-        exclude group: 'co.paralleluniverse', module: 'quasar-core'
-    }
-
     cordaRuntime("$cordaReleaseGroup:corda:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
     }
