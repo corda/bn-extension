@@ -34,16 +34,16 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
 
     @Suspendable
     override fun call(): SignedTransaction {
-        val databaseService = serviceHub.cordaService(DatabaseService::class.java)
-        val membership = databaseService.getMembership(membershipId)
+        val bnService = serviceHub.cordaService(BNService::class.java)
+        val membership = bnService.getMembership(membershipId)
                 ?: throw MembershipNotFoundException("Membership state with $membershipId linear ID doesn't exist")
 
         // check whether party is authorised to initiate flow
         val networkId = membership.state.data.networkId
-        authorise(networkId, databaseService) { it.canModifyRoles() }
+        authorise(networkId, bnService) { it.canModifyRoles() }
 
         // fetch signers
-        val authorisedMemberships = databaseService.getMembersAuthorisedToModifyMembership(networkId).toSet()
+        val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId).toSet()
         val signers = authorisedMemberships.filter {
             it.state.data.isActive()
         }.map {

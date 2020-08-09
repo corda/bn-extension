@@ -168,12 +168,12 @@ abstract class MembershipManagementFlowTest(
     }
 
     private fun addMemberToInitialGroup(initiator: StartedMockNode, networkId: String, membership: MembershipState, notary: Party?) {
-        val databaseService = initiator.services.cordaService(DatabaseService::class.java)
-        val group = databaseService.getAllBusinessNetworkGroups(networkId).minBy { it.state.data.issued }?.state?.data
+        val bnService = initiator.services.cordaService(BNService::class.java)
+        val group = bnService.getAllBusinessNetworkGroups(networkId).minBy { it.state.data.issued }?.state?.data
         assertNotNull(group)
 
         val participants = (group!!.participants + membership.identity.cordaIdentity).map {
-            val participantMembership = databaseService.getMembership(networkId, it)
+            val participantMembership = bnService.getMembership(networkId, it)
             assertNotNull(participantMembership)
 
             participantMembership!!.state.data.linearId
@@ -182,8 +182,8 @@ abstract class MembershipManagementFlowTest(
     }
 
     protected fun getAllMembershipsFromVault(node: StartedMockNode, networkId: String): List<MembershipState> {
-        val databaseService = node.services.cordaService(DatabaseService::class.java)
-        return databaseService.getAllMembershipsWithStatus(
+        val bnService = node.services.cordaService(BNService::class.java)
+        return bnService.getAllMembershipsWithStatus(
                 networkId,
                 MembershipStatus.PENDING, MembershipStatus.ACTIVE, MembershipStatus.SUSPENDED
         ).map {
@@ -192,8 +192,8 @@ abstract class MembershipManagementFlowTest(
     }
 
     protected fun getAllGroupsFromVault(node: StartedMockNode, networkId: String): List<GroupState> {
-        val databaseService = node.services.cordaService(DatabaseService::class.java)
-        return databaseService.getAllBusinessNetworkGroups(networkId).map { it.state.data }
+        val bnService = node.services.cordaService(BNService::class.java)
+        return bnService.getAllBusinessNetworkGroups(networkId).map { it.state.data }
     }
 }
 

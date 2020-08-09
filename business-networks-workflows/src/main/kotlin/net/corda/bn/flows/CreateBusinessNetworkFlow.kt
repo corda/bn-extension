@@ -45,16 +45,16 @@ class CreateBusinessNetworkFlow(
     /**
      * Issues pending membership (with new unique Business Network ID) on initiator's ledger.
      *
-     * @param databaseService Service used to query vault for memberships.
+     * @param BNService Service used to query vault for memberships.
      *
      * @return Signed membership issuance transaction.
      *
      * @throws DuplicateBusinessNetworkException If Business Network with [networkId] ID already exists.
      */
     @Suspendable
-    private fun createMembershipRequest(databaseService: DatabaseService): SignedTransaction {
+    private fun createMembershipRequest(BNService: BNService): SignedTransaction {
         // check if business network with networkId already exists
-        if (databaseService.businessNetworkExists(networkId.toString())) {
+        if (BNService.businessNetworkExists(networkId.toString())) {
             throw DuplicateBusinessNetworkException(networkId)
         }
 
@@ -115,14 +115,14 @@ class CreateBusinessNetworkFlow(
     /**
      * Issues initial Business Network Group on initiator's ledger.
      *
-     * @param databaseService Service used to query vault for memberships.
+     * @param BNService Service used to query vault for memberships.
      *
      * @return Signed group issuance transaction.
      */
     @Suspendable
-    private fun createBusinessNetworkGroup(databaseService: DatabaseService): SignedTransaction {
+    private fun createBusinessNetworkGroup(BNService: BNService): SignedTransaction {
         // check if business network group with groupId already exists
-        if (databaseService.businessNetworkGroupExists(groupId)) {
+        if (BNService.businessNetworkGroupExists(groupId)) {
             throw DuplicateBusinessNetworkGroupException(groupId)
         }
 
@@ -138,15 +138,15 @@ class CreateBusinessNetworkFlow(
 
     @Suspendable
     override fun call(): SignedTransaction {
-        val databaseService = serviceHub.cordaService(DatabaseService::class.java)
+        val bnService = serviceHub.cordaService(BNService::class.java)
         // first issue membership with PENDING status
-        val pendingMembership = createMembershipRequest(databaseService).tx.outRefsOfType(MembershipState::class.java).single()
+        val pendingMembership = createMembershipRequest(bnService).tx.outRefsOfType(MembershipState::class.java).single()
         // after that activate the membership
         val activeMembership = activateMembership(pendingMembership).tx.outRefsOfType(MembershipState::class.java).single()
         // give all administrative permissions to the membership
         return authoriseMembership(activeMembership).apply {
             // in the end create initial business network group
-            createBusinessNetworkGroup(databaseService)
+            createBusinessNetworkGroup(bnService)
         }
     }
 }

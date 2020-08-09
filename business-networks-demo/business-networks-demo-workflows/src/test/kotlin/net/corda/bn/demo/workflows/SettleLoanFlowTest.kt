@@ -2,7 +2,7 @@ package net.corda.bn.demo.workflows
 
 import net.corda.bn.demo.contracts.LoanContract
 import net.corda.bn.demo.contracts.LoanState
-import net.corda.bn.flows.DatabaseService
+import net.corda.bn.flows.BNService
 import net.corda.bn.flows.IllegalFlowArgumentException
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
@@ -25,7 +25,7 @@ class SettleLoanFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers =
         listOf(lenderMembershipId, borrowerMembershipId).forEach { runAssignBICFlow(lender, it, bic) }
         runAssignLoanIssuerRole(lender, networkId)
 
-        val groupId = lender.services.cordaService(DatabaseService::class.java).run {
+        val groupId = lender.services.cordaService(BNService::class.java).run {
             getAllBusinessNetworkGroups(networkId).single().state.data.linearId
         }
         runModifyGroupFlow(lender, groupId, setOf(lenderMembershipId, borrowerMembershipId))
