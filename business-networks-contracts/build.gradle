@@ -1,0 +1,27 @@
+apply plugin: 'kotlin-jpa'
+
+description 'Corda Business Networks Contracts'
+
+cordapp {
+    targetPlatformVersion cordaPlatformVersion.toInteger()
+    minimumPlatformVersion cordaPlatformVersion.toInteger()
+    contract {
+        name "Business Networks Showcase"
+        vendor "Corda Open Source"
+        versionId 1
+        licence "Open Source (Apache 2)"
+    }
+}
+
+dependencies {
+    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+    testCompile "com.nhaarman:mockito-kotlin:$mockitoKotlinVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "junit:junit:$junitVersion"
+}

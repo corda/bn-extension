@@ -1,0 +1,238 @@
+buildscript {
+    Properties constants = new Properties()
+    file("$projectDir/gradle.properties").withInputStream { constants.load(it) }
+    
+    ext {
+        corda_release_group = constants.getProperty("cordaReleaseGroup")
+        corda_release_version = constants.getProperty("cordaVersion")
+        corda_core_release_group =  constants.getProperty("cordaReleaseGroup")
+        corda_core_release_version = constants.getProperty("cordaVersion")
+        corda_gradle_plugins_version = constants.getProperty("cordaGradlePluginsVersion")
+        kotlin_version = constants.getProperty("kotlinVersion")
+        junit_version = constants.getProperty("junitVersion")
+        quasar_version = constants.getProperty("quasarVersion")
+        quasar_classifier = constants.getProperty('quasarClassifier')
+        log4j_version = constants.getProperty("log4jVersion")
+        slf4j_version = constants.getProperty("slf4jVersion")
+        corda_platform_version = constants.getProperty("platformVersion")
+    }
+    
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven { url "$artifactoryContextUrl/corda" }
+        maven { url "$artifactoryContextUrl/corda-releases" }
+        maven { url "$artifactoryContextUrl/corda-dev" }
+        maven { url 'https://repo.gradle.org/gradle/libs-releases' }
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+        classpath "net.corda.plugins:cordformation:$cordaGradlePluginsVersion"
+        classpath "net.corda.plugins:quasar-utils:$cordaGradlePluginsVersion"
+        classpath "net.corda.plugins:cordapp:$cordaGradlePluginsVersion"
+        classpath "org.jetbrains.kotlin:kotlin-noarg:$kotlinVersion"
+    }
+}
+
+plugins {
+    id "com.jfrog.artifactory" version "4.7.5"
+}
+
+// You can define this property in ~/.gradle/gradle.properties on your dev box.
+if (! project.hasProperty('cordaArtifactoryUsername') || ext.cordaArtifactoryUsername != null) {
+    ext.cordaArtifactoryUsername = System.getenv('CORDA_ARTIFACTORY_USERNAME')
+            ?: System.getProperty('corda.artifactory.username')
+}
+
+// You can define this property in ~/.gradle/gradle.properties on your dev box.
+if (! project.hasProperty('cordaArtifactoryPassword') || ext.cordaArtifactoryPassword == null) {
+    ext.cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD')
+            ?: System.getProperty('corda.artifactory.password')
+}
+
+allprojects {
+    apply plugin: 'kotlin'
+    apply plugin: 'idea'
+    apply plugin: 'net.corda.plugins.quasar-utils'
+    apply plugin: 'net.corda.plugins.cordapp'
+    apply plugin: 'net.corda.plugins.cordformation'
+
+    version projectVersion
+    
+    group "net.corda.bn"
+
+    idea {
+        module {
+            downloadJavadoc = true // defaults to false
+            downloadSources = true
+        }
+    }
+
+    repositories {
+        mavenLocal()
+        jcenter()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        maven { url "$artifactoryContextUrl/corda" }
+        maven { url "$artifactoryContextUrl/corda-releases" }
+        maven { url "$artifactoryContextUrl/corda-dev" }
+
+        // Required to resolve dependencies for corda-node-driver 4.1+
+        maven { url "https://repo.gradle.org/gradle/libs-releases-local" }
+    }
+
+    dependencies {
+        implementation "org.jetbrains.kotlin:kotlin-reflect"
+        implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
+        dependencies {
+            // Corda dependencies.
+            cordaCompile("$cordaReleaseGroup:corda-core:$cordaVersion") {
+                exclude group: 'co.paralleluniverse', module: 'quasar-core'
+            }
+            cordaCompile("$cordaReleaseGroup:corda-node-api:$cordaVersion") {
+                exclude group: 'co.paralleluniverse', module: 'quasar-core'
+            }
+            cordaRuntime "$cordaReleaseGroup:corda:$cordaVersion"
+        }
+    }
+
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+        kotlinOptions {
+            languageVersion = "1.2"
+            apiVersion = "1.2"
+            jvmTarget = "1.8"
+            javaParameters = true   // Useful for reflection.
+            freeCompilerArgs = ['-Xjvm-default=compatibility']
+        }
+    }
+}
+
+def publishProjects = subprojects
+
+configure(publishProjects) { subproject ->
+    apply plugin: 'kotlin'
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.artifactory'
+
+    task sourceJar(type: Jar, dependsOn: subproject.classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar, dependsOn: subproject.javadoc) {
+        classifier = 'javadoc'
+        from javadoc.destinationDir
+    }
+
+    task install(dependsOn: 'publishToMavenLocal')
+
+    publishing {
+        publications {
+            create(subproject.name, MavenPublication) {
+                from components.java
+                groupId subproject.group
+                artifactId subproject.name
+                artifact tasks.sourceJar
+                artifact tasks.javadocJar
+
+                pom {
+                    description = subproject.description
+                    licenses {
+                        license {
+                            name = 'Apache-2.0'
+                            url = 'https://www.apache.org/licenses/LICENSE-2.0'
+                            distribution = 'repo'
+                        }
+                    }
+                }
+            }        
+        }
+    }
+}
+
+
+artifactory {
+    publish {
+        contextUrl = ext.artifactoryContextUrl
+        repository {
+            repoKey = System.getenv('CORDA_ARTIFACTORY_REPOKEY') ?: System.getProperty('corda.artifactory.repokey', 'corda-dev')
+            username = cordaArtifactoryUsername
+            password = cordaArtifactoryPassword
+        }
+
+        defaults {
+            if (publishProjects.contains(project)) {
+                publications(project.name)
+            }
+        }
+    } 
+}
+
+
+wrapper {
+    gradleVersion = "6.1.1"
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+dependencies {
+    cordapp project(':business-networks-contracts')
+    cordapp project(':business-networks-workflows')
+}
+
+cordapp {
+    info {
+        name "Business Networks Showcase"
+        vendor "Corda Open Source"
+        targetPlatformVersion cordaPlatformVersion.toInteger()
+        minimumPlatformVersion cordaPlatformVersion.toInteger()
+    }
+}
+
+task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
+    nodeDefaults {
+        projectCordapp {
+            deploy = false
+        }
+        cordapp project(':business-networks-contracts')
+        cordapp project(':business-networks-workflows')
+    }
+    node {
+        name "O=Notary,L=Zurich,C=CH"
+        notary = [validating: true]
+        p2pPort 10002
+        rpcSettings {
+            address "localhost:10003"
+            adminAddress "localhost:10004"
+        }
+    }
+    node {
+        name "CN=BNO,O=BNO,L=London,C=GB"
+        p2pPort 10005
+        rpcSettings {
+            address "localhost:10006"
+            adminAddress "localhost:10007"
+        }
+        rpcUsers = [[user: "BNOUser", password: "test", permissions: ["ALL"]]]
+    }
+    node {
+        name "O=Member1,L=New York,C=US"
+        p2pPort 10008
+        rpcSettings {
+            address "localhost:10009"
+            adminAddress "localhost:10010"
+        }
+        rpcUsers = [[user: "MemberUser1", password: "test", permissions: ["ALL"]]]
+    }
+    node {
+        name "O=Member2,L=New York,C=US"
+        p2pPort 10011
+        rpcSettings {
+            address "localhost:10012"
+            adminAddress "localhost:10013"
+        }
+        rpcUsers = [[user: "MemberUser2", password: "test", permissions: ["ALL"]]]
+    }
+}

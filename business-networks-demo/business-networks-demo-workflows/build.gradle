@@ -1,0 +1,29 @@
+description 'Corda Business Networks Integration Demo - workflows'
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+
+    // Corda integration dependencies
+    cordapp project(':business-networks-workflows')
+    cordapp project(':business-networks-demo:business-networks-demo-contracts')
+
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+
+    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+}
+
+cordapp {
+    targetPlatformVersion cordaPlatformVersion.toInteger()
+    minimumPlatformVersion cordaPlatformVersion.toInteger()
+    workflow {
+        name "Corda Business Networks Integration Demo"
+        versionId 1
+        vendor "R3"
+        licence "Open Source (Apache 2)"
+    }
+}
