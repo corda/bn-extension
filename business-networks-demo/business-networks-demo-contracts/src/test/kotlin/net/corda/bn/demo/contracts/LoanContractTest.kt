@@ -1,5 +1,6 @@
 package net.corda.bn.demo.contracts
 
+import net.corda.bn.contracts.MembershipContract
 import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.MembershipIdentity
 import net.corda.bn.states.MembershipState
@@ -87,67 +88,75 @@ class LoanContractTest {
                 this `fails with` "Loan $commandName transaction should contain only reference MembershipStates"
             }
             transaction {
+                attachment(MembershipContract.CONTRACT_NAME)
                 input(LoanContract.CONTRACT_NAME, input)
                 if (!isExit) output(LoanContract.CONTRACT_NAME, input.run { copy(amount = amount - 1) })
                 command(listOf(lenderIdentity.owningKey, borrowerIdentity.owningKey), cmd.getConstructor().newInstance())
-                reference(LoanContract.CONTRACT_NAME, lenderMembership)
-                reference(LoanContract.CONTRACT_NAME, borrowerMembership.copy(networkId = "other-network-id"))
+                reference(MembershipContract.CONTRACT_NAME, lenderMembership)
+                reference(MembershipContract.CONTRACT_NAME, borrowerMembership.copy(networkId = "other-network-id"))
                 this `fails with` "Loan $commandName transaction should contain only reference membership states from Business Network with ${input.networkId} ID"
             }
             transaction {
+                attachment(MembershipContract.CONTRACT_NAME)
                 input(LoanContract.CONTRACT_NAME, input)
                 if (!isExit) output(LoanContract.CONTRACT_NAME, input.run { copy(amount = amount - 1) })
                 command(listOf(lenderIdentity.owningKey, borrowerIdentity.owningKey), cmd.getConstructor().newInstance())
-                reference(LoanContract.CONTRACT_NAME, borrowerMembership)
-                reference(LoanContract.CONTRACT_NAME, borrowerMembership)
+                reference(MembershipContract.CONTRACT_NAME, borrowerMembership)
+                reference(MembershipContract.CONTRACT_NAME, borrowerMembership)
                 this `fails with` "Loan $commandName transaction should have lender's reference membership state"
             }
             transaction {
+                attachment(MembershipContract.CONTRACT_NAME)
                 input(LoanContract.CONTRACT_NAME, input)
                 if (!isExit) output(LoanContract.CONTRACT_NAME, input.run { copy(amount = amount - 1) })
                 command(listOf(lenderIdentity.owningKey, borrowerIdentity.owningKey), cmd.getConstructor().newInstance())
-                reference(LoanContract.CONTRACT_NAME, lenderMembership)
-                reference(LoanContract.CONTRACT_NAME, lenderMembership)
+                reference(MembershipContract.CONTRACT_NAME, lenderMembership)
+                reference(MembershipContract.CONTRACT_NAME, lenderMembership)
                 this `fails with` "Loan $commandName transaction should have borrowers's reference membership state"
             }
             transaction {
+                attachment(MembershipContract.CONTRACT_NAME)
                 input(LoanContract.CONTRACT_NAME, input)
                 if (!isExit) output(LoanContract.CONTRACT_NAME, input.run { copy(amount = amount - 1) })
                 command(listOf(lenderIdentity.owningKey, borrowerIdentity.owningKey), cmd.getConstructor().newInstance())
-                reference(LoanContract.CONTRACT_NAME, borrowerMembership)
-                reference(LoanContract.CONTRACT_NAME, lenderMembership.copy(status = MembershipStatus.SUSPENDED))
+                reference(MembershipContract.CONTRACT_NAME, borrowerMembership)
+                reference(MembershipContract.CONTRACT_NAME, lenderMembership.copy(status = MembershipStatus.SUSPENDED))
                 this `fails with` "Lender should be active member of Business Network with ${input.networkId}"
             }
             transaction {
+                attachment(MembershipContract.CONTRACT_NAME)
                 input(LoanContract.CONTRACT_NAME, input)
                 if (!isExit) output(LoanContract.CONTRACT_NAME, input.run { copy(amount = amount - 1) })
                 command(listOf(lenderIdentity.owningKey, borrowerIdentity.owningKey), cmd.getConstructor().newInstance())
-                reference(LoanContract.CONTRACT_NAME, borrowerMembership)
-                reference(LoanContract.CONTRACT_NAME, lenderMembership.run { copy(identity = MembershipIdentity(identity.cordaIdentity)) })
+                reference(MembershipContract.CONTRACT_NAME, borrowerMembership)
+                reference(MembershipContract.CONTRACT_NAME, lenderMembership.run { copy(identity = MembershipIdentity(identity.cordaIdentity)) })
                 this `fails with` "Lender should have business identity of BankIdentity type"
             }
             transaction {
+                attachment(MembershipContract.CONTRACT_NAME)
                 input(LoanContract.CONTRACT_NAME, input)
                 if (!isExit) output(LoanContract.CONTRACT_NAME, input.run { copy(amount = amount - 1) })
                 command(listOf(lenderIdentity.owningKey, borrowerIdentity.owningKey), cmd.getConstructor().newInstance())
-                reference(LoanContract.CONTRACT_NAME, borrowerMembership.copy(status = MembershipStatus.SUSPENDED))
-                reference(LoanContract.CONTRACT_NAME, lenderMembership)
+                reference(MembershipContract.CONTRACT_NAME, borrowerMembership.copy(status = MembershipStatus.SUSPENDED))
+                reference(MembershipContract.CONTRACT_NAME, lenderMembership)
                 this `fails with` "Borrower should be active member of Business Network with ${input.networkId}"
             }
             transaction {
+                attachment(MembershipContract.CONTRACT_NAME)
                 input(LoanContract.CONTRACT_NAME, input)
                 if (!isExit) output(LoanContract.CONTRACT_NAME, input.run { copy(amount = amount - 1) })
                 command(listOf(lenderIdentity.owningKey, borrowerIdentity.owningKey), cmd.getConstructor().newInstance())
-                reference(LoanContract.CONTRACT_NAME, borrowerMembership)
-                reference(LoanContract.CONTRACT_NAME, lenderMembership.run { copy(identity = MembershipIdentity(identity.cordaIdentity, DummyIdentity())) })
+                reference(MembershipContract.CONTRACT_NAME, borrowerMembership)
+                reference(MembershipContract.CONTRACT_NAME, lenderMembership.run { copy(identity = MembershipIdentity(identity.cordaIdentity, DummyIdentity())) })
                 this `fails with` "Lender should have business identity of BankIdentity type"
             }
             transaction {
+                attachment(MembershipContract.CONTRACT_NAME)
                 input(LoanContract.CONTRACT_NAME, input)
                 if (!isExit) output(LoanContract.CONTRACT_NAME, input.run { copy(amount = amount - 1) })
                 command(listOf(lenderIdentity.owningKey, borrowerIdentity.owningKey), cmd.getConstructor().newInstance())
-                reference(LoanContract.CONTRACT_NAME, borrowerMembership)
-                reference(LoanContract.CONTRACT_NAME, lenderMembership)
+                reference(MembershipContract.CONTRACT_NAME, borrowerMembership)
+                reference(MembershipContract.CONTRACT_NAME, lenderMembership)
                 verifies()
             }
         }
