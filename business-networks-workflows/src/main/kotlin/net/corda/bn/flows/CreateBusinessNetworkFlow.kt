@@ -62,6 +62,7 @@ class CreateBusinessNetworkFlow(
                 identity = MembershipIdentity(ourIdentity, businessIdentity),
                 networkId = networkId.toString(),
                 status = MembershipStatus.PENDING,
+                issuer = ourIdentity,
                 participants = listOf(ourIdentity)
         )
 
@@ -126,7 +127,7 @@ class CreateBusinessNetworkFlow(
             throw DuplicateBusinessNetworkGroupException(groupId)
         }
 
-        val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity))
+        val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity), issuer = ourIdentity)
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addOutputState(group)
                 .addCommand(GroupContract.Commands.Create(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)

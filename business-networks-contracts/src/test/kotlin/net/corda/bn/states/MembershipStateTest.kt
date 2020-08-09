@@ -12,7 +12,8 @@ class MembershipStateTest {
             networkId = "",
             status = status,
             roles = roles,
-            participants = mock()
+            participants = mock(),
+            issuer = mock()
     )
 
     @Test(timeout = 300_000)

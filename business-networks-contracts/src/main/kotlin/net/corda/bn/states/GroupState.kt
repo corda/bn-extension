@@ -15,6 +15,7 @@ import java.time.Instant
  *
  * @property networkId Unique identifier of a Business Network group belongs to.
  * @property name Name of group, more descriptive way to distinct groups rather than linear ID.
+ * @property issuer The [Party] issuer of this state.
  * @property issued Timestamp when the state has been issued.
  * @property modified Timestamp when the state has been modified last time.
  */
@@ -22,6 +23,7 @@ import java.time.Instant
 data class GroupState(
         val networkId: String,
         val name: String? = null,
+        val issuer: Party,
         val issued: Instant = Instant.now(),
         val modified: Instant = issued,
         override val linearId: UniqueIdentifier = UniqueIdentifier(),

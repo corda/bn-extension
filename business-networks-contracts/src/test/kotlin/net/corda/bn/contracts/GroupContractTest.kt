@@ -15,7 +15,7 @@ class GroupContractTest {
     private val memberIdentity = TestIdentity(CordaX500Name.parse("O=Member,L=London,C=GB")).party
     private val bnoIdentity = TestIdentity(CordaX500Name.parse("O=BNO,L=London,C=GB")).party
 
-    private val groupState = GroupState(networkId = "network-id", participants = listOf(memberIdentity, bnoIdentity))
+    private val groupState = GroupState(networkId = "network-id", participants = listOf(memberIdentity, bnoIdentity), issuer = bnoIdentity)
 
     @Test(timeout = 300_000)
     fun `test common contract verification`() {
@@ -32,6 +32,14 @@ class GroupContractTest {
                 output(GroupContract.CONTRACT_NAME, input)
                 command(bnoIdentity.owningKey, GroupContract.Commands.Modify(listOf(bnoIdentity.owningKey)))
                 this `fails with` "Input state has to be validated by ${GroupContract.CONTRACT_NAME}"
+            }
+            transaction {
+                val input = groupState
+                val output = input.copy(issuer = memberIdentity)
+                input(GroupContract.CONTRACT_NAME, input)
+                output(GroupContract.CONTRACT_NAME, output)
+                command(bnoIdentity.owningKey, GroupContract.Commands.Modify(listOf(bnoIdentity.owningKey)))
+                this `fails with` "Group state issuer cannot be changed"
             }
             transaction {
                 val input = groupState

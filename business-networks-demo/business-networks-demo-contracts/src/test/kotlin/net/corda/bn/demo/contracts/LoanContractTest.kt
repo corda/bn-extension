@@ -47,12 +47,14 @@ class LoanContractTest {
             identity = MembershipIdentity(lenderIdentity, BankIdentity("BANKGB00")),
             networkId = "network-id",
             status = MembershipStatus.ACTIVE,
+            issuer = lenderIdentity,
             participants = listOf(lenderIdentity, borrowerIdentity)
     )
     private val borrowerMembership = MembershipState(
             identity = MembershipIdentity(borrowerIdentity, BankIdentity("BANKGB01")),
             networkId = "network-id",
             status = MembershipStatus.ACTIVE,
+            issuer = lenderIdentity,
             participants = listOf(lenderIdentity, borrowerIdentity)
     )
 

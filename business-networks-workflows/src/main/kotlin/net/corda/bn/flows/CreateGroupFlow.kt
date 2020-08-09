@@ -69,7 +69,8 @@ class CreateGroupFlow(
         val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }
 
         // building transaction
-        val group = GroupState(networkId = networkId, name = groupName, linearId = groupId, participants = (additionalParticipantsIdentities + ourIdentity).toList())
+        val group = GroupState(networkId = networkId, name = groupName, linearId = groupId, issuer = ourIdentity,
+                               participants = (additionalParticipantsIdentities + ourIdentity).toList())
         val requiredSigners = signers.map { it.owningKey }
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addOutputState(group)
