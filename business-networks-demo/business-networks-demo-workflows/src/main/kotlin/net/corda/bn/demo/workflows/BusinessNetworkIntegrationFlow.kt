@@ -3,7 +3,7 @@ package net.corda.bn.demo.workflows
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.demo.contracts.BankIdentity
 import net.corda.bn.demo.contracts.LoanPermissions
-import net.corda.bn.flows.DatabaseService
+import net.corda.bn.flows.BNService
 import net.corda.bn.flows.IllegalMembershipStatusException
 import net.corda.bn.flows.MembershipAuthorisationException
 import net.corda.bn.flows.MembershipNotFoundException
@@ -28,7 +28,7 @@ abstract class BusinessNetworkIntegrationFlow<T> : FlowLogic<T>() {
      */
     @Suspendable
     protected fun businessNetworkPartialVerification(networkId: String, lender: Party, borrower: Party): LoanMemberships {
-        val bnService = serviceHub.cordaService(DatabaseService::class.java)
+        val bnService = serviceHub.cordaService(BNService::class.java)
         val lenderMembership = bnService.getMembership(networkId, lender)
                 ?: throw MembershipNotFoundException("Lender is not part of Business Network with $networkId ID")
         val borrowerMembership = bnService.getMembership(networkId, borrower)
@@ -48,7 +48,7 @@ abstract class BusinessNetworkIntegrationFlow<T> : FlowLogic<T>() {
     @Suppress("ThrowsCount")
     @Suspendable
     protected fun businessNetworkFullVerification(networkId: String, lender: Party, borrower: Party) {
-        val bnService = serviceHub.cordaService(DatabaseService::class.java)
+        val bnService = serviceHub.cordaService(BNService::class.java)
 
         bnService.getMembership(networkId, lender)?.state?.data?.apply {
             if (!isActive()) {

@@ -29,28 +29,28 @@ class DeleteGroupFlow(private val groupId: UniqueIdentifier, private val notary:
     @Suspendable
     override fun call(): SignedTransaction {
         // fetch group state with groupId linear ID
-        val databaseService = serviceHub.cordaService(DatabaseService::class.java)
-        val group = databaseService.getBusinessNetworkGroup(groupId)
+        val bnService = serviceHub.cordaService(BNService::class.java)
+        val group = bnService.getBusinessNetworkGroup(groupId)
                 ?: throw BusinessNetworkGroupNotFoundException("Business Network group with $groupId linear ID doesn't exist")
 
         // check whether party is authorised to initiate flow
         val networkId = group.state.data.networkId
-        authorise(networkId, databaseService) { it.canModifyGroups() }
+        authorise(networkId, bnService) { it.canModifyGroups() }
 
         // check whether any member is not participant of any group
         val oldParticipantsMemberships = group.state.data.participants.map {
-            databaseService.getMembership(networkId, it)
+            bnService.getMembership(networkId, it)
                     ?: throw MembershipNotFoundException("Cannot find membership with $it linear ID")
         }
         val membersWithoutGroup = oldParticipantsMemberships.filter { membership ->
-            membership.state.data.identity.cordaIdentity !in (databaseService.getAllBusinessNetworkGroups(networkId) - group).flatMap { it.state.data.participants }
+            membership.state.data.identity.cordaIdentity !in (bnService.getAllBusinessNetworkGroups(networkId) - group).flatMap { it.state.data.participants }
         }
         if (membersWithoutGroup.isNotEmpty()) {
             throw MembershipMissingGroupParticipationException("Illegal group deletion: $membersWithoutGroup would remain without any group participation.")
         }
 
         // fetch signers
-        val authorisedMemberships = databaseService.getMembersAuthorisedToModifyMembership(networkId)
+        val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
         val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }
 
         // building group exit transaction since deleted group state must be marked historic on all participants's vaults.
@@ -66,7 +66,7 @@ class DeleteGroupFlow(private val groupId: UniqueIdentifier, private val notary:
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         // sync memberships' participants according to removed participants of the groups member is part of
-        syncMembershipsParticipants(networkId, oldParticipantsMemberships, signers, databaseService, notary)
+        syncMembershipsParticipants(networkId, oldParticipantsMemberships, signers, bnService, notary)
 
         return finalisedTransaction
     }

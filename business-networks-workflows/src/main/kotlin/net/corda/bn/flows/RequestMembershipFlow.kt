@@ -46,8 +46,8 @@ class RequestMembershipFlow(
     @Suspendable
     override fun call(): SignedTransaction {
         // check whether the initiator is already member of given Business Network
-        val databaseService = serviceHub.cordaService(DatabaseService::class.java)
-        if (databaseService.getMembership(networkId, ourIdentity) != null) {
+        val bnService = serviceHub.cordaService(BNService::class.java)
+        if (bnService.getMembership(networkId, ourIdentity) != null) {
             throw FlowException("Initiator is already a member of Business Network with $networkId ID")
         }
 
@@ -88,11 +88,11 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
         val (networkId, businessIdentity, notary) = session.receive<MembershipRequest>().unwrap { it }
 
         // check whether party is authorised to activate membership
-        val databaseService = serviceHub.cordaService(DatabaseService::class.java)
-        authorise(networkId, databaseService) { it.canActivateMembership() }
+        val bnService = serviceHub.cordaService(BNService::class.java)
+        authorise(networkId, bnService) { it.canActivateMembership() }
 
         // fetch observers
-        val authorisedMemberships = databaseService.getMembersAuthorisedToModifyMembership(networkId)
+        val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
         val observers = (authorisedMemberships.map { it.state.data.identity.cordaIdentity } - ourIdentity).toSet()
 
         // build transaction

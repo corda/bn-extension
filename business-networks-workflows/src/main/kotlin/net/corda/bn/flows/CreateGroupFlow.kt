@@ -41,17 +41,17 @@ class CreateGroupFlow(
     @Suspendable
     override fun call(): SignedTransaction {
         // check whether party is authorised to initiate flow
-        val databaseService = serviceHub.cordaService(DatabaseService::class.java)
-        val ourMembership = authorise(networkId, databaseService) { it.canModifyGroups() }
+        val bnService = serviceHub.cordaService(BNService::class.java)
+        val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
 
         // check whether group with groupId already exists
-        if (databaseService.businessNetworkGroupExists(groupId)) {
+        if (bnService.businessNetworkGroupExists(groupId)) {
             throw DuplicateBusinessNetworkGroupException(groupId)
         }
 
         // get all additional participants' memberships from provided membership ids
         val additionalParticipantsMemberships = additionalParticipants.map {
-            databaseService.getMembership(it)
+            bnService.getMembership(it)
                     ?: throw MembershipNotFoundException("Cannot find membership with $it linear ID")
         }.toSet()
 
@@ -65,7 +65,7 @@ class CreateGroupFlow(
         }.toSet()
 
         // fetch signers
-        val authorisedMemberships = databaseService.getMembersAuthorisedToModifyMembership(networkId)
+        val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
         val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }
 
         // building transaction
@@ -85,7 +85,7 @@ class CreateGroupFlow(
         sendMemberships(additionalParticipantsMemberships + ourMembership, observerSessions, observerSessions.toHashSet())
 
         // sync memberships' participants according to new participants of the groups member is part of
-        syncMembershipsParticipants(networkId, (additionalParticipantsMemberships + ourMembership).toList(), signers, databaseService, notary)
+        syncMembershipsParticipants(networkId, (additionalParticipantsMemberships + ourMembership).toList(), signers, bnService, notary)
 
         return finalisedTransaction
     }
