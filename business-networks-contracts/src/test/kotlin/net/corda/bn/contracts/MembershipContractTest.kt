@@ -41,7 +41,8 @@ class MembershipContractTest {
             identity = MembershipIdentity(memberIdentity),
             networkId = "network-id",
             status = MembershipStatus.PENDING,
-            participants = listOf(memberIdentity, bnoIdentity)
+            participants = listOf(memberIdentity, bnoIdentity),
+            issuer = bnoIdentity
     )
 
     @Test(timeout = 300_000)
@@ -100,6 +101,13 @@ class MembershipContractTest {
                 output(MembershipContract.CONTRACT_NAME, output)
                 command(listOf(bnoIdentity.owningKey), MembershipContract.Commands.Activate(listOf(bnoIdentity.owningKey)))
                 this `fails with` "Input and output state should have same network IDs"
+            }
+            transaction {
+                val output = input.run { copy(issuer = memberIdentity) }
+                input(MembershipContract.CONTRACT_NAME, input)
+                output(MembershipContract.CONTRACT_NAME, output)
+                command(listOf(bnoIdentity.owningKey), MembershipContract.Commands.Activate(listOf(bnoIdentity.owningKey)))
+                this `fails with` "Membership state issuer cannot be changed"
             }
             transaction {
                 val output = input.run { copy(issued = issued.minusSeconds(100)) }

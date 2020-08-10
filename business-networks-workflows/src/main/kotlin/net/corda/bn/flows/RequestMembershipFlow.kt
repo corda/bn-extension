@@ -101,6 +101,7 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
                 identity = MembershipIdentity(counterparty, businessIdentity),
                 networkId = networkId,
                 status = MembershipStatus.PENDING,
+                issuer = ourIdentity,
                 participants = (observers + ourIdentity + counterparty).toList()
         )
         val requiredSigners = listOf(ourIdentity.owningKey, counterparty.owningKey)

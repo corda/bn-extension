@@ -111,6 +111,7 @@ open class MembershipContract : Contract {
                 "Input and output state should have same Corda identity" using (inputState.identity.cordaIdentity == outputState.identity.cordaIdentity)
                 "Input and output state should have same network IDs" using (inputState.networkId == outputState.networkId)
                 "Input and output state should have same issued timestamps" using (inputState.issued == outputState.issued)
+                "Membership state issuer cannot be changed" using (inputState.issuer == outputState.issuer)
                 "Output state's modified timestamp should be greater or equal than input's" using (inputState.modified <= outputState.modified)
                 "Input and output state should have same linear IDs" using (inputState.linearId == outputState.linearId)
                 "Transaction must be signed by all signers specified inside command" using (command.signers.toSet() == command.value.requiredSigners.toSet())
