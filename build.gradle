@@ -1,7 +1,7 @@
 buildscript {
     Properties constants = new Properties()
     file("$projectDir/gradle.properties").withInputStream { constants.load(it) }
-    
+
     ext {
         corda_release_group = constants.getProperty("cordaReleaseGroup")
         corda_release_version = constants.getProperty("cordaVersion")
@@ -16,7 +16,7 @@ buildscript {
         slf4j_version = constants.getProperty("slf4jVersion")
         corda_platform_version = constants.getProperty("platformVersion")
     }
-    
+
     repositories {
         mavenLocal()
         mavenCentral()
@@ -60,7 +60,7 @@ allprojects {
     apply plugin: 'net.corda.plugins.cordformation'
 
     version projectVersion
-    
+
     group "net.corda.bn"
 
     idea {
@@ -131,24 +131,26 @@ configure(publishProjects) { subproject ->
 
     publishing {
         publications {
-            create(subproject.name, MavenPublication) {
-                from components.java
-                groupId subproject.group
-                artifactId subproject.name
-                artifact tasks.sourceJar
-                artifact tasks.javadocJar
+            if (!subproject.name.endsWith("demo")) {
+                create(subproject.name, MavenPublication) {
+                    from components.java
+                    groupId subproject.group
+                    artifactId subproject.name
+                    artifact tasks.sourceJar
+                    artifact tasks.javadocJar
 
-                pom {
-                    description = subproject.description
-                    licenses {
-                        license {
-                            name = 'Apache-2.0'
-                            url = 'https://www.apache.org/licenses/LICENSE-2.0'
-                            distribution = 'repo'
+                    pom {
+                        description = subproject.description
+                        licenses {
+                            license {
+                                name = 'Apache-2.0'
+                                url = 'https://www.apache.org/licenses/LICENSE-2.0'
+                                distribution = 'repo'
+                            }
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
@@ -168,7 +170,7 @@ artifactory {
                 publications(project.name)
             }
         }
-    } 
+    }
 }
 
 
