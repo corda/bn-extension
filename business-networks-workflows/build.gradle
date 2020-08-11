@@ -11,14 +11,33 @@ cordapp {
     }
 }
 
+sourceSets {
+    integrationTest {
+        kotlin {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+            srcDir file('src/integration-test/kotlin')
+        }
+        resources {
+            srcDir file('src/integration-test/resources')
+        }
+    }
+}
+
+configurations {
+    testArtifacts.extendsFrom testRuntimeClasspath
+    integrationTestCompile.extendsFrom testCompile
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
 dependencies {
     cordaRuntime("$cordaReleaseGroup:corda:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
     }
-    
+
     cordapp project(":business-networks-contracts")
 
-    
+
     testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
     }
@@ -31,4 +50,11 @@ dependencies {
     testImplementation "junit:junit:$junitVersion"
 }
 
+test.maxHeapSize = "2g"
+
+task integrationTest(type: Test, dependsOn: []) {
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    maxHeapSize = "2g"
+}
 test.maxHeapSize = "2g"
