@@ -8,6 +8,7 @@ import net.corda.bn.states.MembershipStatus
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.Party
+import net.corda.core.node.AppServiceHub
 import net.corda.core.node.ServiceHub
 import net.corda.core.node.services.CordaService
 import net.corda.core.node.services.Vault
@@ -22,7 +23,7 @@ import net.corda.core.serialization.SingletonSerializeAsToken
  * Each method querying vault for Business Network information must be included here.
  */
 @CordaService
-class BNService(private val serviceHub: ServiceHub) : SingletonSerializeAsToken() {
+class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsToken() {
 
     /**
      * Checks whether Business Network with [networkId] ID exists.
