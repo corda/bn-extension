@@ -30,3 +30,5 @@ dependencies {
     testCompile "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "junit:junit:$junitVersion"
 }
+
+test.maxHeapSize = "2g"
