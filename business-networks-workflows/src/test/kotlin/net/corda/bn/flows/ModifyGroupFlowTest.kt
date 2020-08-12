@@ -30,6 +30,26 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     }
 
     @Test(timeout = 300_000)
+    fun `modify group flow should fail if group with given name already exists`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val groupName = "default-group"
+        val (networkId, authorisedMemberId) = (runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).tx.outputStates.single() as MembershipState).run {
+            networkId to linearId
+        }
+        val regularMemberId = (runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
+        val defaultGroupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
+
+        // giving already existing name to another group should fail
+        val newGroupId = (runCreateGroupFlow(authorisedMember, networkId, additionalParticipants = setOf(regularMemberId)).tx.outputStates.single() as GroupState).linearId
+        assertFailsWith<DuplicateBusinessNetworkGroupException> { runModifyGroupFlow(authorisedMember, newGroupId, name = groupName) }
+
+        // giving already existing name to the group with that name shouldn't fail
+        runModifyGroupFlow(authorisedMember, defaultGroupId, groupName, setOf(authorisedMemberId))
+    }
+
+    @Test(timeout = 300_000)
     fun `modify group flow should fail if invalid notary argument is provided`() {
         val authorisedMember = authorisedMembers.first()
 

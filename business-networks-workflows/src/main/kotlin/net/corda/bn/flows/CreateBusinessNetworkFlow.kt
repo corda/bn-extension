@@ -30,7 +30,7 @@ import net.corda.core.transactions.TransactionBuilder
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
  *
  * @throws DuplicateBusinessNetworkException If Business Network with [networkId] ID already exists.
- * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID or [groupName] name already exists
+ * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID already exists
  * in the Business Network with [networkId] ID.
  */
 @InitiatingFlow
@@ -126,9 +126,6 @@ class CreateBusinessNetworkFlow(
         // check if business network group with groupId or groupName already exists
         if (BNService.businessNetworkGroupExists(groupId)) {
             throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
-        }
-        if (groupName != null && BNService.businessNetworkGroupExists(networkId.toString(), groupName)) {
-            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupName name already exists in Business Network with $networkId ID")
         }
 
         val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity), issuer = ourIdentity)
