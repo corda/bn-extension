@@ -46,7 +46,7 @@ abstract class BusinessNetworkIntegrationFlow<T> : FlowLogic<T>() {
      * @param lender Party issuing the loan.
      * @param borrower Party paying of the loan.
      */
-    @Suppress("ThrowsCount")
+    @Suppress("ComplexMethod", "ThrowsCount")
     @Suspendable
     protected fun businessNetworkFullVerification(networkId: String, lender: Party, borrower: Party) {
         val bnService = serviceHub.cordaService(BNService::class.java)
