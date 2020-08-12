@@ -16,6 +16,7 @@ object GroupStateSchemaV1 : MappedSchema(schemaFamily = GroupState::class.java, 
      * Mapped [GroupState] to be exported to a schema.
      *
      * @property networkId Mapped column for [GroupState.networkId].
+     * @property name Mapped column for [GroupState.name].
      */
     @Entity
     @Table(name = "group_state")

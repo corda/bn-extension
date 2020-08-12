@@ -11,6 +11,7 @@
                 <constraints nullable="false"/>
             </column>
             <column name="network_id" type="varchar(255)"/>
+            <column name="name" type="varchar(255)"/>
         </createTable>
         <addPrimaryKey columnNames="output_index, transaction_id"
                        constraintName="PK_GroupStateSchemaV1"
