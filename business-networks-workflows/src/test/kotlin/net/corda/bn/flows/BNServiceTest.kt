@@ -180,30 +180,46 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
     }
 
     @Test(timeout = 300_000)
-    fun `business network groups exists method should work`() {
+    fun `business network group exists method should work`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
         val authorisedMemberService = authorisedMember.services.cordaService(BNService::class.java)
         val regularMemberService = regularMember.services.cordaService(BNService::class.java)
 
+        val invalidNetworkId = UniqueIdentifier()
         val invalidGroupId = UniqueIdentifier()
-        listOf(authorisedMemberService, regularMemberService).forEach { service -> assertFalse(service.businessNetworkGroupExists(invalidGroupId)) }
+        val invalidGroupName = "invalid-group-name"
+        listOf(authorisedMemberService, regularMemberService).forEach { service ->
+            assertFalse(service.businessNetworkGroupExists(invalidGroupId))
+            assertFalse(service.businessNetworkGroupExists(invalidNetworkId.toString(), invalidGroupName))
+        }
 
         val groupId = UniqueIdentifier()
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId).tx.outputStates.single() as MembershipState).networkId
+        val groupName = "default-group"
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId, groupName = groupName).tx.outputStates.single() as MembershipState).networkId
         assertTrue(authorisedMemberService.businessNetworkGroupExists(groupId))
+        assertTrue(authorisedMemberService.businessNetworkGroupExists(networkId, groupName))
         assertFalse(regularMemberService.businessNetworkGroupExists(groupId))
+        assertFalse(regularMemberService.businessNetworkGroupExists(networkId, groupName))
 
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
-        listOf(authorisedMemberService, regularMemberService).forEach { service -> assertTrue(service.businessNetworkGroupExists(groupId)) }
+        listOf(authorisedMemberService, regularMemberService).forEach { service ->
+            assertTrue(service.businessNetworkGroupExists(groupId))
+            assertTrue(service.businessNetworkGroupExists(networkId, groupName))
+        }
 
         runSuspendMembershipFlow(authorisedMember, membership.linearId)
-        listOf(authorisedMemberService, regularMemberService).forEach { service -> assertTrue(service.businessNetworkGroupExists(groupId)) }
+        listOf(authorisedMemberService, regularMemberService).forEach { service ->
+            assertTrue(service.businessNetworkGroupExists(groupId))
+            assertTrue(service.businessNetworkGroupExists(networkId, groupName))
+        }
 
         runRevokeMembershipFlow(authorisedMember, membership.linearId)
         assertTrue(authorisedMemberService.businessNetworkGroupExists(groupId))
+        assertTrue(authorisedMemberService.businessNetworkGroupExists(networkId, groupName))
         assertFalse(regularMemberService.businessNetworkGroupExists(groupId))
+        assertFalse(regularMemberService.businessNetworkGroupExists(networkId, groupName))
     }
 
     @Test(timeout = 300_000)
@@ -214,27 +230,39 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         val authorisedMemberService = authorisedMember.services.cordaService(BNService::class.java)
         val regularMemberService = regularMember.services.cordaService(BNService::class.java)
 
+        val invalidNetworkId = UniqueIdentifier()
         val invalidGroupId = UniqueIdentifier()
-        listOf(authorisedMemberService, regularMemberService).forEach { service -> assertNull(service.getBusinessNetworkGroup(invalidGroupId)) }
+        val invalidGroupName = "invalid-group-name"
+        listOf(authorisedMemberService, regularMemberService).forEach { service ->
+            assertNull(service.getBusinessNetworkGroup(invalidGroupId))
+            assertNull(service.getBusinessNetworkGroup(invalidNetworkId.toString(), invalidGroupName))
+        }
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val groupName = "default-group"
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).tx.outputStates.single() as MembershipState).networkId
         val groupId = authorisedMemberService.getAllBusinessNetworkGroups(networkId).single().state.data.linearId
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(groupId)?.state?.data?.participants?.toSet())
+        assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(networkId, groupName)?.state?.data?.participants?.toSet())
         assertNull(regularMemberService.getBusinessNetworkGroup(groupId))
+        assertNull(regularMemberService.getBusinessNetworkGroup(networkId, groupName))
 
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
             assertEquals(setOf(authorisedMember.identity(), regularMember.identity()), service.getBusinessNetworkGroup(groupId)?.state?.data?.participants?.toSet())
+            assertEquals(setOf(authorisedMember.identity(), regularMember.identity()), service.getBusinessNetworkGroup(networkId, groupName)?.state?.data?.participants?.toSet())
         }
 
         runSuspendMembershipFlow(authorisedMember, membership.linearId).tx.outputStates.single()
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
             assertEquals(setOf(authorisedMember.identity(), regularMember.identity()), service.getBusinessNetworkGroup(groupId)?.state?.data?.participants?.toSet())
+            assertEquals(setOf(authorisedMember.identity(), regularMember.identity()), service.getBusinessNetworkGroup(networkId, groupName)?.state?.data?.participants?.toSet())
         }
 
         runRevokeMembershipFlow(authorisedMember, membership.linearId)
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(groupId)?.state?.data?.participants?.toSet())
-        assertFailsWith<IllegalStateException> { regularMemberService.getBusinessNetworkGroup(groupId) }
+        assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(networkId, groupName)?.state?.data?.participants?.toSet())
+        assertNull(regularMemberService.getBusinessNetworkGroup(groupId))
+        assertNull(regularMemberService.getBusinessNetworkGroup(networkId, groupName))
     }
 
     @Test(timeout = 300_000)

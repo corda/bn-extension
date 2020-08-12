@@ -62,7 +62,7 @@ class ModifyGroupInternalFlow(
 
         // check whether group with groupName already exists
         val networkId = group.state.data.networkId
-        if (name != null && bnService.businessNetworkGroupExists(networkId, name)) {
+        if (name != null && group.state.data.name != name && bnService.businessNetworkGroupExists(networkId, name)) {
             throw DuplicateBusinessNetworkGroupException("Business Network Group with $name name already exists in Business Network with $networkId ID")
         }
 
