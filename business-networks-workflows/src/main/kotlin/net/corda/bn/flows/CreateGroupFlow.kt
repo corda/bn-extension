@@ -26,7 +26,8 @@ import net.corda.core.transactions.TransactionBuilder
  * @property additionalParticipants Set of participants to be added to issued Business Network Group alongside initiator's identity.
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
  *
- * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID already exists.
+ * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID or [groupName] name already exists
+ * in the Business Network with [networkId] ID.
  */
 @InitiatingFlow
 @StartableByRPC
@@ -44,9 +45,12 @@ class CreateGroupFlow(
         val bnService = serviceHub.cordaService(BNService::class.java)
         val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
 
-        // check whether group with groupId already exists
+        // check whether group with groupId or groupName already exists
         if (bnService.businessNetworkGroupExists(groupId)) {
-            throw DuplicateBusinessNetworkGroupException(groupId)
+            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
+        }
+        if (groupName != null && bnService.businessNetworkGroupExists(networkId, groupName)) {
+            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupName name already exists in Business Network with $networkId ID")
         }
 
         // get all additional participants' memberships from provided membership ids
@@ -70,7 +74,7 @@ class CreateGroupFlow(
 
         // building transaction
         val group = GroupState(networkId = networkId, name = groupName, linearId = groupId, issuer = ourIdentity,
-                               participants = (additionalParticipantsIdentities + ourIdentity).toList())
+                participants = (additionalParticipantsIdentities + ourIdentity).toList())
         val requiredSigners = signers.map { it.owningKey }
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addOutputState(group)

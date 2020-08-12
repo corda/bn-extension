@@ -146,6 +146,25 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
     }
 
     /**
+     * Checks whether Business Network Group with [groupName] name exists in Business Network with [networkId] ID and
+     * caller is part of it.
+     *
+     * @param networkId ID of the Business Network.
+     * @param groupName Name of the Business Network Group.
+     */
+    fun businessNetworkGroupExists(networkId: String, groupName: String): Boolean {
+        if (!isBusinessNetworkMember(networkId, ourIdentity)) {
+            return false
+        }
+
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
+                .and(groupNetworkIdCriteria(networkId))
+                .and(groupNameCriteria(groupName))
+        val state = serviceHub.vaultService.queryBy<GroupState>(criteria).states.map { it.state.data }.maxBy { it.modified }
+        return state != null && ourIdentity in state.participants
+    }
+
+    /**
      * Queries for Business Network Group with [groupId] ID.
      *
      * @param groupId ID of the Business Network Group.
@@ -160,6 +179,29 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         val states = serviceHub.vaultService.queryBy<GroupState>(criteria).states
         return states.maxBy { it.state.data.modified }?.apply {
             check(ourIdentity in state.data.participants) { "Caller is not part of the Business Network Group with $groupId ID" }
+        }
+    }
+
+    /**
+     * Queries for Business Network Group with [groupName] name in Business Network with [networkId] ID.
+     *
+     * @param networkId ID of the Business Network.
+     * @param groupName Name of the Business Network Group.
+     *
+     * @return Business Network Group matching the query. If that group doesn't exist or the caller is not part of it,
+     * return [null].
+     */
+    fun getBusinessNetworkGroup(networkId: String, groupName: String): StateAndRef<GroupState>? {
+        if (!isBusinessNetworkMember(networkId, ourIdentity)) {
+            return null
+        }
+
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+                .and(groupNetworkIdCriteria(networkId))
+                .and(groupNameCriteria(groupName))
+        val states = serviceHub.vaultService.queryBy<GroupState>(criteria).states
+        return states.maxBy { it.state.data.modified }?.run {
+            if (ourIdentity in state.data.participants) this else null
         }
     }
 
@@ -193,6 +235,8 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
 
     /** Instantiates custom vault query criteria for finding membership with any of given [statuses]. **/
     private fun statusCriteria(statuses: List<MembershipStatus>) = QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::status.`in`(statuses) })
+
+    private fun groupNameCriteria(groupName: String) = QueryCriteria.VaultCustomQueryCriteria(builder { GroupStateSchemaV1.PersistentGroupState::name.equal(groupName) })
 
     /** Instantiates custom vault query criteria for finding linear state with given [linearId]. **/
     private fun linearIdCriteria(linearId: UniqueIdentifier) = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(linearId))
