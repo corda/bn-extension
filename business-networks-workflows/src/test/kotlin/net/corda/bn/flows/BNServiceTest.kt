@@ -7,7 +7,9 @@ import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.CordaX500Name
 import net.corda.testing.core.TestIdentity
 import org.junit.Test
+import java.lang.IllegalStateException
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -59,7 +61,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         val invalidIdentity = TestIdentity(CordaX500Name.parse("O=InvalidOrganisation,L=New York,C=US")).party
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
             assertNull(service.getMembership(invalidMembershipId))
-            assertNull(service.getMembership(invalidNetworkId, invalidIdentity))
+            assertFailsWith<IllegalStateException> { service.getMembership(invalidNetworkId, invalidIdentity) }
         }
 
         val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
@@ -67,7 +69,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
             assertEquals(linearId, authorisedMemberService.getMembership(linearId)?.state?.data?.linearId)
             assertEquals(linearId, authorisedMemberService.getMembership(networkId, identity.cordaIdentity)?.state?.data?.linearId)
             assertNull(regularMemberService.getMembership(linearId))
-            assertNull(regularMemberService.getMembership(networkId, identity.cordaIdentity))
+            assertFailsWith<IllegalStateException> { regularMemberService.getMembership(networkId, identity.cordaIdentity) }
         }
 
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, authorisedMembership.networkId).tx.outputStates.single() as MembershipState
@@ -94,14 +96,14 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         authorisedMembership.apply {
             assertEquals(linearId, authorisedMemberService.getMembership(linearId)?.state?.data?.linearId)
             assertEquals(linearId, authorisedMemberService.getMembership(networkId, identity.cordaIdentity)?.state?.data?.linearId)
-            assertNull(regularMemberService.getMembership(linearId))
-            assertNull(regularMemberService.getMembership(networkId, identity.cordaIdentity))
+            assertFailsWith<IllegalStateException> { regularMemberService.getMembership(linearId) }
+            assertFailsWith<IllegalStateException> { regularMemberService.getMembership(networkId, identity.cordaIdentity) }
         }
         suspendedMembership.apply {
             assertNull(authorisedMemberService.getMembership(linearId))
             assertNull(authorisedMemberService.getMembership(networkId, identity.cordaIdentity))
             assertNull(regularMemberService.getMembership(linearId))
-            assertNull(regularMemberService.getMembership(networkId, identity.cordaIdentity))
+            assertFailsWith<IllegalStateException> { regularMemberService.getMembership(networkId, identity.cordaIdentity) }
         }
     }
 
@@ -114,11 +116,13 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         val regularMemberService = regularMember.services.cordaService(BNService::class.java)
 
         val invalidNetworkId = "invalid-network-id"
-        listOf(authorisedMemberService, regularMemberService).forEach { service -> assertTrue(service.getAllMemberships(invalidNetworkId).isEmpty()) }
+        listOf(authorisedMemberService, regularMemberService).forEach { service ->
+            assertFailsWith<IllegalStateException> { service.getAllMemberships(invalidNetworkId) }
+        }
 
         val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
         assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getAllMemberships(authorisedMembership.networkId).toSet())
-        assertTrue(regularMemberService.getAllMemberships(authorisedMembership.networkId).isEmpty())
+        assertFailsWith<IllegalStateException> { regularMemberService.getAllMemberships(authorisedMembership.networkId) }
 
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, authorisedMembership.networkId).tx.outputStates.single() as MembershipState
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
@@ -135,7 +139,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
 
         runRevokeMembershipFlow(authorisedMember, suspendedMembership.linearId)
         assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getAllMemberships(authorisedMembership.networkId).toSet())
-        assertTrue(regularMemberService.getAllMemberships(authorisedMembership.networkId).isEmpty())
+        assertFailsWith<IllegalStateException> { regularMemberService.getAllMemberships(authorisedMembership.networkId) }
     }
 
     @Test(timeout = 300_000)
@@ -147,11 +151,13 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         val regularMemberService = regularMember.services.cordaService(BNService::class.java)
 
         val invalidNetworkId = "invalid-network-id"
-        listOf(authorisedMemberService, regularMemberService).forEach { service -> assertTrue(service.getMembersAuthorisedToModifyMembership(invalidNetworkId).isEmpty()) }
+        listOf(authorisedMemberService, regularMemberService).forEach { service ->
+            assertFailsWith<IllegalStateException> { service.getMembersAuthorisedToModifyMembership(invalidNetworkId) }
+        }
 
         val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
         assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getMembersAuthorisedToModifyMembership(authorisedMembership.networkId).map { it.state.data.linearId }.toSet())
-        assertTrue(regularMemberService.getMembersAuthorisedToModifyMembership(authorisedMembership.networkId).isEmpty())
+        assertFailsWith<IllegalStateException> { regularMemberService.getMembersAuthorisedToModifyMembership(authorisedMembership.networkId) }
 
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, authorisedMembership.networkId).tx.outputStates.single() as MembershipState
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
@@ -170,7 +176,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
 
         runRevokeMembershipFlow(authorisedMember, suspendedMembership.linearId)
         assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getMembersAuthorisedToModifyMembership(authorisedMembership.networkId).map { it.state.data.linearId }.toSet())
-        assertTrue(regularMemberService.getMembersAuthorisedToModifyMembership(authorisedMembership.networkId).isEmpty())
+        assertFailsWith<IllegalStateException> { regularMemberService.getMembersAuthorisedToModifyMembership(authorisedMembership.networkId) }
     }
 
     @Test(timeout = 300_000)
@@ -228,7 +234,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
 
         runRevokeMembershipFlow(authorisedMember, membership.linearId)
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(groupId)?.state?.data?.participants?.toSet())
-        assertNull(regularMemberService.getBusinessNetworkGroup(groupId))
+        assertFailsWith<IllegalStateException> { regularMemberService.getBusinessNetworkGroup(groupId) }
     }
 
     @Test(timeout = 300_000)
@@ -240,11 +246,13 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         val regularMemberService = regularMember.services.cordaService(BNService::class.java)
 
         val invalidNetworkId = "invalid-network-id"
-        listOf(authorisedMemberService, regularMemberService).forEach { service -> assertTrue(service.getAllBusinessNetworkGroups(invalidNetworkId).isEmpty()) }
+        listOf(authorisedMemberService, regularMemberService).forEach { service ->
+            assertFailsWith<IllegalStateException> { service.getAllBusinessNetworkGroups(invalidNetworkId) }
+        }
 
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         assertTrue(authorisedMemberService.getAllBusinessNetworkGroups(networkId).isNotEmpty())
-        assertTrue(regularMemberService.getAllBusinessNetworkGroups(networkId).isEmpty())
+        assertFailsWith<IllegalStateException> { regularMemberService.getAllBusinessNetworkGroups(networkId) }
 
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         listOf(authorisedMemberService, regularMemberService).forEach { service -> assertTrue(service.getAllBusinessNetworkGroups(networkId).isNotEmpty()) }
@@ -254,6 +262,6 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
 
         runRevokeMembershipFlow(authorisedMember, membership.linearId)
         assertTrue(authorisedMemberService.getAllBusinessNetworkGroups(networkId).isNotEmpty())
-        assertTrue(regularMemberService.getAllBusinessNetworkGroups(networkId).isEmpty())
+        assertFailsWith<IllegalStateException> { regularMemberService.getAllBusinessNetworkGroups(networkId) }
     }
 }

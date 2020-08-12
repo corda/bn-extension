@@ -70,14 +70,14 @@ class CentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
             }
 
             // suspend and revoke second member node in the list
-            iterator.next().also { (membershipId, node) ->
+            val (_, revokedMember) = iterator.next().also { (membershipId, node) ->
                 suspendMembershipAndCheck(bnoNode, memberNodes, membershipId, defaultNotaryIdentity)
                 revokeMembershipAndCheck(bnoNode, memberNodes, membershipId, defaultNotaryIdentity, networkId.toString(), node.identity())
             }
 
             // directly revoke third member node in the list
             iterator.next().also { (membershipId, node) ->
-                revokeMembershipAndCheck(bnoNode, memberNodes, membershipId, defaultNotaryIdentity, networkId.toString(), node.identity())
+                revokeMembershipAndCheck(bnoNode, memberNodes - revokedMember, membershipId, defaultNotaryIdentity, networkId.toString(), node.identity())
             }
         }
     }
@@ -142,7 +142,7 @@ class CentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
 
             // delete all groups that were created for each revoked Business Network member
             groupIds.forEach {
-                deleteGroupAndCheck(bnoNode, memberNodes, it, defaultNotaryIdentity)
+                deleteGroupAndCheck(bnoNode, emptyList(), it, defaultNotaryIdentity)
             }
         }
     }

@@ -39,25 +39,38 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
     }
 
     /**
+     * Checks whether [party] is member of Business Network with [networkId] ID.
+     *
+     * @param networkId ID of the Business Network.
+     * @param party Identity of the potential member.
+     */
+    fun isBusinessNetworkMember(networkId: String, party: Party): Boolean {
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+                .and(membershipNetworkIdCriteria(networkId))
+                .and(identityCriteria(party))
+        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.isNotEmpty()
+    }
+
+    /**
      * Queries for membership with [party] identity inside Business Network with [networkId] ID.
      *
      * @param networkId ID of the Business Network.
      * @param party Identity of the member.
      *
-     * @return Membership state of member matching the query. If that member doesn't exist or the caller is not member of
-     * Business Network with [networkId], returns [null].
+     * @return Membership state of member matching the query. If that member doesn't exist, returns [null].
+     *
+     * @throws IllegalStateException If the caller is not member of the Business Network with [networkId] ID or is not
+     * part of any Business Network Group that [party] is part of.
      */
     fun getMembership(networkId: String, party: Party): StateAndRef<MembershipState>? {
-        if (!isBusinessNetworkMember(networkId, ourIdentity)) {
-            return null
-        }
+        check(isBusinessNetworkMember(networkId, ourIdentity)) { "Caller is not member of the Business Network with $networkId ID" }
 
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(membershipNetworkIdCriteria(networkId))
                 .and(identityCriteria(party))
         val states = serviceHub.vaultService.queryBy<MembershipState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.run {
-            if (ourIdentity in state.data.participants) this else null
+        return states.maxBy { it.state.data.modified }?.apply {
+            check(ourIdentity in state.data.participants) { "Caller is not part of any Business Network Group that $party is part of" }
         }
     }
 
@@ -66,15 +79,18 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
      *
      * @param linearId Linear ID of the [MembershipState].
      *
-     * @return Membership state matching the query. If that membership doesn't exist or the caller is not member of the
-     * same Business Network, returns [null].
+     * @return Membership state matching the query. If that membership doesn't exist, returns [null].
+     *
+     * @throws IllegalStateException If the caller is not member of the Business Network or not part of any Business
+     * Network Group that member with [linearId] ID is part of.
      */
     fun getMembership(linearId: UniqueIdentifier): StateAndRef<MembershipState>? {
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(linearIdCriteria(linearId))
         val states = serviceHub.vaultService.queryBy<MembershipState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.run {
-            if (isBusinessNetworkMember(state.data.networkId, ourIdentity) && ourIdentity in state.data.participants) this else null
+        return states.maxBy { it.state.data.modified }?.apply {
+            check(isBusinessNetworkMember(state.data.networkId, ourIdentity)) { "Caller is not member of the Business Network with ${state.data.networkId} ID" }
+            check(ourIdentity in state.data.participants) { "Caller is not part of any Business Network Group that ${state.data.identity.cordaIdentity} is part of" }
         }
     }
 
@@ -86,11 +102,11 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
      * @param statuses [MembershipStatus] of the memberships to be fetched.
      *
      * @return List of state and ref pairs of memberships matching the query.
+     *
+     * @throws IllegalStateException If the caller is not member of the Business Network with [networkId] ID.
      */
     fun getAllMembershipsWithStatus(networkId: String, vararg statuses: MembershipStatus): List<StateAndRef<MembershipState>> {
-        if (!isBusinessNetworkMember(networkId, ourIdentity)) {
-            return emptyList()
-        }
+        check(isBusinessNetworkMember(networkId, ourIdentity)) { "Caller is not member of the Business Network with $networkId ID" }
 
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(membershipNetworkIdCriteria(networkId))
@@ -107,6 +123,8 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
      * @param networkId ID of the Business Network.
      *
      * @return List of state and ref pairs of authorised members' membership states.
+     *
+     * @throws IllegalStateException If the caller is not member of the Business Network with [networkId] ID.
      */
     fun getMembersAuthorisedToModifyMembership(networkId: String): List<StateAndRef<MembershipState>> = getAllMembershipsWithStatus(
             networkId,
@@ -132,15 +150,16 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
      *
      * @param groupId ID of the Business Network Group.
      *
-     * @return Business Network Group matching the query. If that group doesn't exist or the caller is not part of it,
-     * return [null].
+     * @return Business Network Group matching the query. If that group doesn't exist, return [null].
+     *
+     * @throws IllegalStateException If the caller is not part of the Business Network Group with [groupId] ID.
      */
     fun getBusinessNetworkGroup(groupId: UniqueIdentifier): StateAndRef<GroupState>? {
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(linearIdCriteria(groupId))
         val states = serviceHub.vaultService.queryBy<GroupState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.run {
-            if (ourIdentity in state.data.participants) this else null
+        return states.maxBy { it.state.data.modified }?.apply {
+            check(ourIdentity in state.data.participants) { "Caller is not part of the Business Network Group with $groupId ID" }
         }
     }
 
@@ -150,30 +169,17 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
      * @param networkId ID of the Business Network.
      *
      * @return List of state and ref pairs of Business Network Groups.
+     *
+     * @throws IllegalStateException If the caller is not member of the Business Network with [networkId] ID.
      */
     fun getAllBusinessNetworkGroups(networkId: String): List<StateAndRef<GroupState>> {
-        if (!isBusinessNetworkMember(networkId, ourIdentity)) {
-            return emptyList()
-        }
+        check(isBusinessNetworkMember(networkId, ourIdentity)) { "Caller is not member of the Business Network with $networkId ID" }
 
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(groupNetworkIdCriteria(networkId))
         return serviceHub.vaultService.queryBy<GroupState>(criteria).states.filter {
             ourIdentity in it.state.data.participants
         }
-    }
-
-    /**
-     * Checks whether [party] is member of Business Network with [networkId] ID.
-     *
-     * @param networkId ID of the Business Network.
-     * @param party Identity of the potential member.
-     */
-    private fun isBusinessNetworkMember(networkId: String, party: Party): Boolean {
-        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
-                .and(membershipNetworkIdCriteria(networkId))
-                .and(identityCriteria(party))
-        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.isNotEmpty()
     }
 
     /** Instantiates custom vault query criteria for finding membership with given [networkId]. **/

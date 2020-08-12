@@ -47,7 +47,7 @@ class RequestMembershipFlow(
     override fun call(): SignedTransaction {
         // check whether the initiator is already member of given Business Network
         val bnService = serviceHub.cordaService(BNService::class.java)
-        if (bnService.getMembership(networkId, ourIdentity) != null) {
+        if (bnService.isBusinessNetworkMember(networkId, ourIdentity)) {
             throw FlowException("Initiator is already a member of Business Network with $networkId ID")
         }
 

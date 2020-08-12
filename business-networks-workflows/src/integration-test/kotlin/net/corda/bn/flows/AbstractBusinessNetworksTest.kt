@@ -203,7 +203,9 @@ abstract class AbstractBusinessNetworksTest {
             val service = node.services.cordaService(BNService::class.java)
 
             assertNull(service.getMembership(membershipId))
-            assertTrue(service.getAllBusinessNetworkGroups(networkId).all { revokedParty !in it.state.data.participants })
+            if (node.identity() != revokedParty) {
+                assertTrue(service.getAllBusinessNetworkGroups(networkId).all { revokedParty !in it.state.data.participants })
+            }
         }
     }
 

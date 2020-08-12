@@ -3,6 +3,7 @@ package net.corda.bn.flows
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
 import org.junit.Test
+import java.lang.IllegalStateException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -64,18 +65,18 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
         }
 
         // also check ledgers
-        authorisedMember.also { member ->
-            getAllMembershipsFromVault(member, networkId).single().apply {
+        with(authorisedMember) {
+            getAllMembershipsFromVault(this, networkId).single().apply {
                 assertEquals(authorisedMember.identity(), identity.cordaIdentity)
                 assertEquals(setOf(authorisedMember.identity()), participants.toSet())
             }
-            getAllGroupsFromVault(member, networkId).single().apply {
+            getAllGroupsFromVault(this, networkId).single().apply {
                 assertEquals(setOf(authorisedMember.identity()), participants.toSet())
             }
         }
         regularMember.also { member ->
-            assertTrue(getAllMembershipsFromVault(member, networkId).isEmpty())
-            assertTrue(getAllGroupsFromVault(member, networkId).isEmpty())
+            assertFailsWith<IllegalStateException> { getAllMembershipsFromVault(member, networkId).isEmpty() }
+            assertFailsWith<IllegalStateException> { getAllGroupsFromVault(member, networkId).isEmpty() }
         }
     }
 }
