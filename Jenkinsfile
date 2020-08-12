@@ -5,7 +5,7 @@ import static com.r3.build.BuildControl.killAllExistingBuildsForJob
 killAllExistingBuildsForJob(env.JOB_NAME, env.BUILD_NUMBER.toInteger())
 
 pipeline {
-    agent { label 'ubuntu' }
+    agent { label 'standard' }
     options { timestamps() }
     environment {
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
