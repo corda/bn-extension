@@ -192,7 +192,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         val invalidGroupName = "invalid-group-name"
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
             assertFalse(service.businessNetworkGroupExists(invalidGroupId))
-            assertFalse(service.businessNetworkGroupExists(invalidNetworkId.toString(), invalidGroupName))
+            assertFailsWith<IllegalStateException> { service.businessNetworkGroupExists(invalidNetworkId.toString(), invalidGroupName) }
         }
 
         val groupId = UniqueIdentifier()
@@ -201,7 +201,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         assertTrue(authorisedMemberService.businessNetworkGroupExists(groupId))
         assertTrue(authorisedMemberService.businessNetworkGroupExists(networkId, groupName))
         assertFalse(regularMemberService.businessNetworkGroupExists(groupId))
-        assertFalse(regularMemberService.businessNetworkGroupExists(networkId, groupName))
+        assertFailsWith<IllegalStateException> { regularMemberService.businessNetworkGroupExists(networkId, groupName) }
 
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
@@ -219,7 +219,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         assertTrue(authorisedMemberService.businessNetworkGroupExists(groupId))
         assertTrue(authorisedMemberService.businessNetworkGroupExists(networkId, groupName))
         assertFalse(regularMemberService.businessNetworkGroupExists(groupId))
-        assertFalse(regularMemberService.businessNetworkGroupExists(networkId, groupName))
+        assertFailsWith<IllegalStateException> { regularMemberService.businessNetworkGroupExists(networkId, groupName) }
     }
 
     @Test(timeout = 300_000)
@@ -235,7 +235,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         val invalidGroupName = "invalid-group-name"
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
             assertNull(service.getBusinessNetworkGroup(invalidGroupId))
-            assertNull(service.getBusinessNetworkGroup(invalidNetworkId.toString(), invalidGroupName))
+            assertFailsWith<IllegalStateException> { service.getBusinessNetworkGroup(invalidNetworkId.toString(), invalidGroupName) }
         }
 
         val groupName = "default-group"
@@ -244,7 +244,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(groupId)?.state?.data?.participants?.toSet())
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(networkId, groupName)?.state?.data?.participants?.toSet())
         assertNull(regularMemberService.getBusinessNetworkGroup(groupId))
-        assertNull(regularMemberService.getBusinessNetworkGroup(networkId, groupName))
+        assertFailsWith<IllegalStateException> { regularMemberService.getBusinessNetworkGroup(networkId, groupName) }
 
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
@@ -261,8 +261,8 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         runRevokeMembershipFlow(authorisedMember, membership.linearId)
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(groupId)?.state?.data?.participants?.toSet())
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(networkId, groupName)?.state?.data?.participants?.toSet())
-        assertNull(regularMemberService.getBusinessNetworkGroup(groupId))
-        assertNull(regularMemberService.getBusinessNetworkGroup(networkId, groupName))
+        assertFailsWith<IllegalStateException> { regularMemberService.getBusinessNetworkGroup(groupId) }
+        assertFailsWith<IllegalStateException> { regularMemberService.getBusinessNetworkGroup(networkId, groupName) }
     }
 
     @Test(timeout = 300_000)
