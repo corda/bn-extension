@@ -236,6 +236,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
     /** Instantiates custom vault query criteria for finding membership with any of given [statuses]. **/
     private fun statusCriteria(statuses: List<MembershipStatus>) = QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::status.`in`(statuses) })
 
+    /** Instantiates custom vault query criteria for finding Business Network Group given [groupName]. **/
     private fun groupNameCriteria(groupName: String) = QueryCriteria.VaultCustomQueryCriteria(builder { GroupStateSchemaV1.PersistentGroupState::name.equal(groupName) })
 
     /** Instantiates custom vault query criteria for finding linear state with given [linearId]. **/
