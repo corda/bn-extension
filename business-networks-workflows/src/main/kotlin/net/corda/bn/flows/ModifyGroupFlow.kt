@@ -60,8 +60,13 @@ class ModifyGroupInternalFlow(
         val group = bnService.getBusinessNetworkGroup(groupId)
                 ?: throw BusinessNetworkGroupNotFoundException("Business Network group with $groupId linear ID doesn't exist")
 
-        // check whether party is authorised to initiate flow
+        // check whether group with groupName already exists
         val networkId = group.state.data.networkId
+        if (name != null && bnService.businessNetworkGroupExists(networkId, name)) {
+            throw DuplicateBusinessNetworkGroupException("Business Network Group with $name name already exists in Business Network with $networkId ID")
+        }
+
+        // check whether party is authorised to initiate flow
         authorise(networkId, bnService) { it.canModifyGroups() }
 
         // get all new participants' memberships from provided membership ids
