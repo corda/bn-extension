@@ -151,11 +151,11 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
      *
      * @param networkId ID of the Business Network.
      * @param groupName Name of the Business Network Group.
+     *
+     * @throws IllegalStateException If the caller is not member of the Business Network with [networkId] ID.
      */
     fun businessNetworkGroupExists(networkId: String, groupName: String): Boolean {
-        if (!isBusinessNetworkMember(networkId, ourIdentity)) {
-            return false
-        }
+        check(isBusinessNetworkMember(networkId, ourIdentity)) { "Caller is not member of the Business Network with $networkId ID" }
 
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
                 .and(groupNetworkIdCriteria(networkId))
@@ -188,20 +188,20 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
      * @param networkId ID of the Business Network.
      * @param groupName Name of the Business Network Group.
      *
-     * @return Business Network Group matching the query. If that group doesn't exist or the caller is not part of it,
-     * return [null].
+     * @return Business Network Group matching the query. If that group doesn't exist, return [null].
+     *
+     * @throws IllegalStateException If the caller is not member of the Business Network with [networkId] ID or part of
+     * the Business Network Group with [groupName] name.
      */
     fun getBusinessNetworkGroup(networkId: String, groupName: String): StateAndRef<GroupState>? {
-        if (!isBusinessNetworkMember(networkId, ourIdentity)) {
-            return null
-        }
+        check(isBusinessNetworkMember(networkId, ourIdentity)) { "Caller is not member of the Business Network with $networkId ID" }
 
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(groupNetworkIdCriteria(networkId))
                 .and(groupNameCriteria(groupName))
         val states = serviceHub.vaultService.queryBy<GroupState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.run {
-            if (ourIdentity in state.data.participants) this else null
+        return states.maxBy { it.state.data.modified }?.apply {
+            check(ourIdentity in state.data.participants) { "Caller is not part of the Business Network Group with $groupName name" }
         }
     }
 
