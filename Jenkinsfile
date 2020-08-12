@@ -5,15 +5,10 @@ import static com.r3.build.BuildControl.killAllExistingBuildsForJob
 killAllExistingBuildsForJob(env.JOB_NAME, env.BUILD_NUMBER.toInteger())
 
 pipeline {
-    agent {
-        dockerfile {
-            filename 'distributed-testing-plugin/.ci/Dockerfile'
-        }
-    }
+    agent { label 'ubuntu' }
     options { timestamps() }
     environment {
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
-        ARTIFACTORY_CREDENTIALS = credentials('artifactory-credentials')
     }
     stages {
         stage('Unit Tests') {
