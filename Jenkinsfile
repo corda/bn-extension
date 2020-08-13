@@ -11,9 +11,19 @@ pipeline {
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
     }
     stages {
+        stage('Detekt') {
+            steps {
+                sh "./gradlew clean detekt --info"
+            }
+        }
         stage('Unit Tests') {
             steps {
                 sh "./gradlew clean test --info"
+            }
+        }
+        stage('Integration Tests') {
+            steps {
+                sh "./gradlew clean integrationTest --info"
             }
         }
     }

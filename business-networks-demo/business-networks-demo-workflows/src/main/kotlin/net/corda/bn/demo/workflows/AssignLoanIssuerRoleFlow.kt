@@ -23,8 +23,12 @@ class AssignLoanIssuerRoleFlow(private val networkId: String, private val notary
     @Suspendable
     override fun call(): SignedTransaction {
         val bnService = serviceHub.cordaService(BNService::class.java)
-        val ourMembership = bnService.getMembership(networkId, ourIdentity)?.state?.data
-                ?: throw MembershipNotFoundException("$ourIdentity is not member of Business Network with $networkId ID")
+        val ourMembership = try {
+            bnService.getMembership(networkId, ourIdentity)?.state?.data
+                    ?: throw MembershipNotFoundException("$ourIdentity is not member of Business Network with $networkId ID")
+        } catch (e: IllegalStateException) {
+            throw MembershipNotFoundException("$ourIdentity is not member of Business Network with $networkId ID")
+        }
 
         return subFlow(ModifyRolesFlow(ourMembership.linearId, ourMembership.roles + LoanIssuerRole(), notary))
     }

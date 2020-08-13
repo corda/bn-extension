@@ -18,6 +18,7 @@ import net.corda.core.node.StatesToRecord
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
+import java.lang.IllegalStateException
 
 /**
  * This abstract class is extended by any flow which will use common membership management helper methods.
@@ -37,14 +38,18 @@ abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
         if (!BNService.businessNetworkExists(networkId)) {
             throw BusinessNetworkNotFoundException("Business Network with $networkId doesn't exist")
         }
-        return BNService.getMembership(networkId, ourIdentity)?.apply {
-            if (!state.data.isActive()) {
-                throw IllegalMembershipStatusException("Membership owned by $ourIdentity is not active")
-            }
-            if (!authorisationMethod(state.data)) {
-                throw MembershipAuthorisationException("$ourIdentity is not authorised to run $this")
-            }
-        } ?: throw MembershipNotFoundException("$ourIdentity is not member of a business network")
+        return try {
+            BNService.getMembership(networkId, ourIdentity)?.apply {
+                if (!state.data.isActive()) {
+                    throw IllegalMembershipStatusException("Membership owned by $ourIdentity is not active")
+                }
+                if (!authorisationMethod(state.data)) {
+                    throw MembershipAuthorisationException("$ourIdentity is not authorised to run $this")
+                }
+            } ?: throw MembershipNotFoundException("$ourIdentity is not member of a business network")
+        } catch (e: IllegalStateException) {
+            throw MembershipNotFoundException("$ourIdentity is not member of a business network")
+        }
     }
 
     /**
