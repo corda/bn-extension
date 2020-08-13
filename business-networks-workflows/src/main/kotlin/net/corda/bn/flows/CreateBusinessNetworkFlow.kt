@@ -30,8 +30,7 @@ import net.corda.core.transactions.TransactionBuilder
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
  *
  * @throws DuplicateBusinessNetworkException If Business Network with [networkId] ID already exists.
- * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID already exists
- * in the Business Network with [networkId] ID.
+ * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID already exists.
  */
 @InitiatingFlow
 @StartableByRPC
@@ -123,7 +122,7 @@ class CreateBusinessNetworkFlow(
      */
     @Suspendable
     private fun createBusinessNetworkGroup(BNService: BNService): SignedTransaction {
-        // check if business network group with groupId or groupName already exists
+        // check if business network group with groupId already exists
         if (BNService.businessNetworkGroupExists(groupId)) {
             throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
         }
