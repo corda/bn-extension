@@ -21,7 +21,7 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     }
 
     @Test(timeout = 300_000)
-    fun `create group flow should fail when trying to create group with already existing group ID`() {
+    fun `create group flow should fail when trying to create group with already existing group ID or name`() {
         val authorisedMember = authorisedMembers.first()
 
         val groupName = "default-group"

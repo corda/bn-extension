@@ -22,6 +22,7 @@ import net.corda.core.serialization.SingletonSerializeAsToken
  * Each method querying vault for Business Network information must be included here.
  */
 @CordaService
+@Suppress("TooManyFunctions")
 class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsToken() {
 
     /** Identity of Business Network Service caller. **/
