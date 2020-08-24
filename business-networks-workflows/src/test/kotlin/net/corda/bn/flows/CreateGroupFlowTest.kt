@@ -1,6 +1,7 @@
 package net.corda.bn.flows
 
 import net.corda.bn.contracts.GroupContract
+import net.corda.bn.schemas.BNRequestType
 import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
@@ -45,6 +46,40 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
 
             runActivateMembershipFlow(authorisedMember, membership.linearId)
             assertFailsWith<MembershipAuthorisationException> { runCreateGroupFlow(regularMember, networkId) }
+        }
+    }
+
+    @Test(timeout = 300_000)
+    fun `create group flow should fail if another group creation request with same data is in progress`() {
+        val authorisedMember = authorisedMembers.first()
+
+        val groupId = UniqueIdentifier()
+        val groupName = "custom-group"
+        authorisedMember.transaction {
+            createPersistentBNRequest(authorisedMember, BNRequestType.BUSINESS_NETWORK_GROUP_NAME, groupName)
+        }
+
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        assertFailsWith<DuplicateBusinessNetworkRequestException> {
+            runCreateGroupFlow(authorisedMember, networkId, groupId, groupName)
+        }.apply {
+            assertEquals(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, type)
+            assertEquals(groupName, data)
+        }
+
+        authorisedMember.transaction {
+            createPersistentBNRequest(authorisedMember, BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+        }
+        assertFailsWith<DuplicateBusinessNetworkRequestException> {
+            runCreateGroupFlow(authorisedMember, networkId, groupId, groupName)
+        }.apply {
+            assertEquals(BNRequestType.BUSINESS_NETWORK_GROUP_ID, type)
+            assertEquals(groupId.toString(), data)
+        }
+
+        authorisedMember.transaction {
+            deletePersistentBNRequest(authorisedMember, BNRequestType.BUSINESS_NETWORK_GROUP_NAME, groupName)
+            deletePersistentBNRequest(authorisedMember, BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
         }
     }
 

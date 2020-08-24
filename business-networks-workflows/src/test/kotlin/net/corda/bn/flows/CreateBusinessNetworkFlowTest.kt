@@ -1,6 +1,7 @@
 package net.corda.bn.flows
 
 import net.corda.bn.contracts.MembershipContract
+import net.corda.bn.schemas.BNRequestType
 import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
 import net.corda.core.contracts.UniqueIdentifier
@@ -22,6 +23,24 @@ class CreateBusinessNetworkFlowTest : MembershipManagementFlowTest(numberOfAutho
     }
 
     @Test(timeout = 300_000)
+    fun `create business network flow should fail if another request for the custom network ID is already in progress`() {
+        val authorisedMember = authorisedMembers.first()
+        val networkId = UniqueIdentifier()
+
+        authorisedMember.transaction {
+            createPersistentBNRequest(authorisedMember, BNRequestType.BUSINESS_NETWORK_ID, networkId.toString())
+        }
+
+        val e = assertFailsWith<DuplicateBusinessNetworkRequestException> { runCreateBusinessNetworkFlow(authorisedMember, networkId = networkId) }
+        assertEquals(BNRequestType.BUSINESS_NETWORK_ID, e.type)
+        assertEquals(networkId.toString(), e.data)
+
+        authorisedMember.transaction {
+            deletePersistentBNRequest(authorisedMember, BNRequestType.BUSINESS_NETWORK_ID, networkId.toString())
+        }
+    }
+
+    @Test(timeout = 300_000)
     fun `create business network flow should fail when invalid notary argument is provided`() {
         val authorisedMember = authorisedMembers.first()
 
@@ -36,6 +55,24 @@ class CreateBusinessNetworkFlowTest : MembershipManagementFlowTest(numberOfAutho
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
         assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId) }
+    }
+
+    @Test(timeout = 300_000)
+    fun `create business network flow should fail if another request for the custom group ID is already in progress`() {
+        val authorisedMember = authorisedMembers.first()
+        val groupId = UniqueIdentifier()
+
+        authorisedMember.transaction {
+            createPersistentBNRequest(authorisedMember, BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+        }
+
+        val e = assertFailsWith<DuplicateBusinessNetworkRequestException> { runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId) }
+        assertEquals(BNRequestType.BUSINESS_NETWORK_GROUP_ID, e.type)
+        assertEquals(groupId.toString(), e.data)
+
+        authorisedMember.transaction {
+            deletePersistentBNRequest(authorisedMember, BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+        }
     }
 
     @Test(timeout = 300_000)

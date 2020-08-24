@@ -1,5 +1,7 @@
 package net.corda.bn.flows
 
+import net.corda.bn.schemas.BNRequestSchemaV1
+import net.corda.bn.schemas.BNRequestType
 import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.BNRole
 import net.corda.bn.states.GroupState
@@ -194,6 +196,21 @@ abstract class MembershipManagementFlowTest(
     protected fun getAllGroupsFromVault(node: StartedMockNode, networkId: String): List<GroupState> {
         val bnService = node.services.cordaService(BNService::class.java)
         return bnService.getAllBusinessNetworkGroups(networkId).map { it.state.data }
+    }
+
+    protected fun createPersistentBNRequest(node: StartedMockNode, type: BNRequestType, data: String) = node.services.withEntityManager {
+        persist(BNRequestSchemaV1.PersistentBNRequest(type = type, data = data))
+        flush()
+    }
+
+    protected fun deletePersistentBNRequest(node: StartedMockNode, type: BNRequestType, data: String) = node.services.withEntityManager {
+        val query = """
+                delete from PersistentBNRequest
+                where type = :type
+                and data = :data
+            """
+
+        createQuery(query).setParameter("type", type).setParameter("data", data).executeUpdate()
     }
 }
 

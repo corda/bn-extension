@@ -1,6 +1,7 @@
 package net.corda.bn.flows
 
 import net.corda.bn.contracts.MembershipContract
+import net.corda.bn.schemas.BNRequestType
 import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
 import net.corda.core.flows.FlowException
@@ -20,6 +21,25 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
 
         assertFailsWith<FlowException>("Initiator is already a member of Business Network with $networkId ID") {
             runRequestMembershipFlow(authorisedMember, authorisedMember, networkId)
+        }
+    }
+
+    @Test(timeout = 300_000)
+    fun `request membership flow should fail if another pending membership request is already in progress`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        authorisedMember.transaction {
+            createPersistentBNRequest(authorisedMember, BNRequestType.PENDING_MEMBERSHIP, regularMember.identity().toString())
+        }
+
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        assertFailsWith<FlowException> {
+            runRequestMembershipFlow(regularMember, authorisedMember, networkId)
+        }
+
+        authorisedMember.transaction {
+            deletePersistentBNRequest(authorisedMember, BNRequestType.PENDING_MEMBERSHIP, regularMember.identity().toString())
         }
     }
 
