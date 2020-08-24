@@ -1,6 +1,8 @@
 package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
+import net.corda.bn.schemas.BNRequestSchemaV1
+import net.corda.bn.schemas.BNRequestType
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndRef
@@ -164,5 +166,36 @@ abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
 
             subFlow(ModifyParticipantsFlow(membership, newParticipants.toList(), signers, notary))
         }
+    }
+
+    /**
+     * Persists Business Network request with unique combination of request type and data to prevent user from creating
+     * multiple same requests in-flight which could result in duplicate resource issuance on ledger.
+     *
+     * @param type Type of Business Network request.
+     * @param data Data of the Business Network request.
+     */
+    @Suspendable
+    protected fun createPersistentBNRequest(type: BNRequestType, data: String) = serviceHub.withEntityManager {
+        persist(BNRequestSchemaV1.PersistentBNRequest(type = type, data = data))
+        flush()
+    }
+
+    /**
+     * Deletes Business Network request persisted before to prevent having multiple requests in-flight. This method
+     * should be called after the data is successfully stored on all participants' ledgers.
+     *
+     * @param type Type of Business Network request.
+     * @param data Data of the Business Network request.
+     */
+    @Suspendable
+    protected fun deletePersistentBNRequest(type: BNRequestType, data: String) = serviceHub.withEntityManager {
+        val query = """
+                delete from PersistentBNRequest
+                where type = :type
+                and data = :data
+            """
+
+        createQuery(query).setParameter("type", type).setParameter("data", data).executeUpdate()
     }
 }

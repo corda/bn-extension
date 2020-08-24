@@ -2,6 +2,7 @@ package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.contracts.GroupContract
+import net.corda.bn.schemas.BNRequestType
 import net.corda.bn.states.GroupState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.FlowException
@@ -12,6 +13,7 @@ import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
+import javax.persistence.PersistenceException
 
 /**
  * This flow is initiated by any member authorised to modify Business Network Groups. Issues new [GroupState] with initiator and
@@ -28,6 +30,8 @@ import net.corda.core.transactions.TransactionBuilder
  *
  * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID or [groupName] name already exists
  * in the Business Network with [networkId] ID.
+ * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+ * duplicate issuance of Business Network Group.
  */
 @InitiatingFlow
 @StartableByRPC
@@ -45,13 +49,8 @@ class CreateGroupFlow(
         val bnService = serviceHub.cordaService(BNService::class.java)
         val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
 
-        // check whether group with groupId or groupName already exists
-        if (bnService.businessNetworkGroupExists(groupId)) {
-            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
-        }
-        if (groupName != null && bnService.businessNetworkGroupExists(networkId, groupName)) {
-            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupName name already exists in Business Network with $networkId ID")
-        }
+        // check whether group already exists and whether there are same requests already submitted
+        checkGroupExistence(bnService)
 
         // get all additional participants' memberships from provided membership ids
         val additionalParticipantsMemberships = additionalParticipants.map {
@@ -97,7 +96,59 @@ class CreateGroupFlow(
         // sync memberships' participants according to new participants of the groups member is part of
         syncMembershipsParticipants(networkId, (additionalParticipantsMemberships + ourMembership).toList(), signers, bnService, notary)
 
+        // deleting previously created request since all of the changes are persisted on ledger
+        deleteGroupRequests()
+
         return finalisedTransaction
+    }
+
+    @Suppress("ThrowsCount")
+    @Suspendable
+    private fun checkGroupExistence(bnService: BNService) {
+        // check whether group with groupId already exists
+        if (bnService.businessNetworkGroupExists(groupId)) {
+            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
+        }
+
+        // creating Business Network Group with ID creation request so no multiple requests with same data can be made in-flight
+        try {
+            createPersistentBNRequest(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+        } catch (e: PersistenceException) {
+            logger.error("Error when trying to create a request for creation of Business Network Group with custom linear ID")
+            throw DuplicateBusinessNetworkRequestException(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+        }
+
+        groupName?.also {
+            // check whether group with groupName already exists
+            if (bnService.businessNetworkGroupExists(networkId, it)) {
+                throw DuplicateBusinessNetworkGroupException("Business Network Group with $it name already exists in Business Network with $networkId ID")
+            }
+
+            // creating Business Network Group with specified name creation request so no multiple requests with same data can be made in-flight
+            try {
+                createPersistentBNRequest(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, it)
+            } catch (e: PersistenceException) {
+                logger.error("Error when trying to create a request for creation of Business Network Group with specified name")
+                throw DuplicateBusinessNetworkRequestException(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, it)
+            }
+        }
+    }
+
+    @Suspendable
+    private fun deleteGroupRequests() {
+        try {
+            deletePersistentBNRequest(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+        } catch (e: PersistenceException) {
+            logger.warn("Error when trying to delete a request for creation of Business Network Group with custom linear ID")
+        }
+
+        groupName?.also {
+            try {
+                deletePersistentBNRequest(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, groupName)
+            } catch (e: PersistenceException) {
+                logger.warn("Error when trying to delete a request for creation of Business Network Group with specified name")
+            }
+        }
     }
 }
 

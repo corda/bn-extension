@@ -1,5 +1,6 @@
 package net.corda.bn.flows
 
+import net.corda.bn.schemas.BNRequestType
 import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
@@ -18,6 +19,8 @@ class DuplicateBusinessNetworkException(val networkId: UniqueIdentifier) : FlowE
  * @property groupId ID of the already existing Business Network Group.
  */
 class DuplicateBusinessNetworkGroupException(message: String) : FlowException(message)
+
+class DuplicateBusinessNetworkRequestException(val type: BNRequestType, val data: String) : FlowException("Request of $type type with $data data already exists")
 
 /**
  * Exception thrown by any [MembershipManagementFlow] whenever Business Network with provided [MembershipState.networkId] doesn't exist.

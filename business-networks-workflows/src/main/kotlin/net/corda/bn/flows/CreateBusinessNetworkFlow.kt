@@ -3,6 +3,7 @@ package net.corda.bn.flows
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.contracts.MembershipContract
 import net.corda.bn.contracts.GroupContract
+import net.corda.bn.schemas.BNRequestType
 import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.BNORole
 import net.corda.bn.states.GroupState
@@ -12,12 +13,12 @@ import net.corda.bn.states.MembershipStatus
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.FinalityFlow
-import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
+import javax.persistence.PersistenceException
 
 /**
  * Self issues [MembershipState] for the flow initiator creating new Business Network as consequence. Every node in Compatibility Zone can
@@ -30,7 +31,9 @@ import net.corda.core.transactions.TransactionBuilder
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
  *
  * @throws DuplicateBusinessNetworkException If Business Network with [networkId] ID already exists.
- * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID already exists.
+ * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId]
+ * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+ * duplicate issuance of Business Network or Business Network Group.
  */
 @InitiatingFlow
 @StartableByRPC
@@ -40,7 +43,7 @@ class CreateBusinessNetworkFlow(
         private val groupId: UniqueIdentifier = UniqueIdentifier(),
         private val groupName: String? = null,
         private val notary: Party? = null
-) : FlowLogic<SignedTransaction>() {
+) : MembershipManagementFlow<SignedTransaction>() {
 
     /**
      * Issues pending membership (with new unique Business Network ID) on initiator's ledger.
@@ -50,12 +53,22 @@ class CreateBusinessNetworkFlow(
      * @return Signed membership issuance transaction.
      *
      * @throws DuplicateBusinessNetworkException If Business Network with [networkId] ID already exists.
+     * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+     * duplicate issuance of Business Network.
      */
     @Suspendable
     private fun createMembershipRequest(BNService: BNService): SignedTransaction {
         // check if business network with networkId already exists
         if (BNService.businessNetworkExists(networkId.toString())) {
             throw DuplicateBusinessNetworkException(networkId)
+        }
+
+        // creating Business Network with ID creation request so no multiple requests with same data can be made in-flight
+        try {
+            createPersistentBNRequest(BNRequestType.BUSINESS_NETWORK_ID, networkId.toString())
+        } catch (e: PersistenceException) {
+            logger.error("Error when trying to create a request for creation of a Business Network with custom network ID")
+            throw DuplicateBusinessNetworkRequestException(BNRequestType.BUSINESS_NETWORK_ID, networkId.toString())
         }
 
         val membership = MembershipState(
@@ -72,7 +85,16 @@ class CreateBusinessNetworkFlow(
         builder.verify(serviceHub)
 
         val stx = serviceHub.signInitialTransaction(builder)
-        return subFlow(FinalityFlow(stx, emptyList()))
+        val ftx = subFlow(FinalityFlow(stx, emptyList()))
+
+        // deleting previously created request since all of the changes are persisted on ledger
+        try {
+            deletePersistentBNRequest(BNRequestType.BUSINESS_NETWORK_ID, networkId.toString())
+        } catch (e: PersistenceException) {
+            logger.warn("Error when trying to delete a request for creation of a Business Network with custom network ID")
+        }
+
+        return ftx
     }
 
     /**
@@ -119,12 +141,23 @@ class CreateBusinessNetworkFlow(
      * @param BNService Service used to query vault for memberships.
      *
      * @return Signed group issuance transaction.
+     *
+     * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+     * duplicate issuance of Business Network Group.
      */
     @Suspendable
     private fun createBusinessNetworkGroup(BNService: BNService): SignedTransaction {
         // check if business network group with groupId already exists
         if (BNService.businessNetworkGroupExists(groupId)) {
             throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
+        }
+
+        // creating Business Network Group with ID creation request so no multiple requests with same data can be made in-flight
+        try {
+            createPersistentBNRequest(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+        } catch (e: PersistenceException) {
+            logger.error("Error when trying to create a request for creation of Business Network Group with custom linear ID")
+            throw DuplicateBusinessNetworkRequestException(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
         }
 
         val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity), issuer = ourIdentity)
@@ -134,7 +167,16 @@ class CreateBusinessNetworkFlow(
         builder.verify(serviceHub)
 
         val stx = serviceHub.signInitialTransaction(builder)
-        return subFlow(FinalityFlow(stx, emptyList()))
+        val ftx = subFlow(FinalityFlow(stx, emptyList()))
+
+        // deleting previously created request since all of the changes are persisted on ledger
+        try {
+            deletePersistentBNRequest(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+        } catch (e: PersistenceException) {
+            logger.warn("Error when trying to delete a request for creation of Business Network Group with custom linear ID")
+        }
+
+        return ftx
     }
 
     @Suspendable
