@@ -56,7 +56,7 @@ Next steps are same for every OS (Windows/Mac/Linux).
 5. Activate *Bank B* and *Bank C* membership requests from *Bank A* node by running 
    `flow start ActivateMembershipFlow membershipId: <LINEAR_ID>, notary: null` for each requested membership.
 6. Add newly activated *Bank B* and *Bank C* members into initial group by running 
-   `flow start ModifyGroupFlow groupId: <OBTAINED_GROUP_ID>, name: null, participants: [<BANK_A_ID>, <BANK_B_ID>, <BANK_C_ID>]` 
+   `flow start ModifyGroupFlow groupId: <OBTAINED_GROUP_ID>, name: null, participants: [<BANK_A_ID>, <BANK_B_ID>, <BANK_C_ID>], notary: null` 
    on *Bank A* node.
 7. Assign BIC to each of 3 bank nodes by running 
    `flow start AssignBICFlow membershipId: <LINEAR_ID>, bic: <STRING>, notary: null` on *Bank A* node 
