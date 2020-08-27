@@ -67,28 +67,29 @@ class CreateBusinessNetworkFlow(
             logger.error("Error when trying to create a request for creation of a Business Network with custom network ID")
         }
 
-        val membership = MembershipState(
-                identity = MembershipIdentity(ourIdentity, businessIdentity),
-                networkId = networkId.toString(),
-                status = MembershipStatus.PENDING,
-                issuer = ourIdentity,
-                participants = listOf(ourIdentity)
-        )
+        try {
+            val membership = MembershipState(
+                    identity = MembershipIdentity(ourIdentity, businessIdentity),
+                    networkId = networkId.toString(),
+                    status = MembershipStatus.PENDING,
+                    issuer = ourIdentity,
+                    participants = listOf(ourIdentity)
+            )
 
-        val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
-                .addOutputState(membership)
-                .addCommand(MembershipContract.Commands.Request(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
-        builder.verify(serviceHub)
+            val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
+                    .addOutputState(membership)
+                    .addCommand(MembershipContract.Commands.Request(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
+            builder.verify(serviceHub)
 
-        val stx = serviceHub.signInitialTransaction(builder)
-        val ftx = subFlow(FinalityFlow(stx, emptyList()))
+            val stx = serviceHub.signInitialTransaction(builder)
 
-        // deleting previously created lock since all of the changes are persisted on ledger
-        bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_ID, networkId.toString()) {
-            logger.warn("Error when trying to delete a request for creation of a Business Network with custom network ID")
+            return subFlow(FinalityFlow(stx, emptyList()))
+        } finally {
+            // deleting previously created lock since all of the changes are persisted on ledger
+            bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_ID, networkId.toString()) {
+                logger.warn("Error when trying to delete a request for creation of a Business Network with custom network ID")
+            }
         }
-
-        return ftx
     }
 
     /**
@@ -151,21 +152,21 @@ class CreateBusinessNetworkFlow(
             logger.error("Error when trying to create a request for creation of Business Network Group with custom linear ID")
         }
 
-        val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity), issuer = ourIdentity)
-        val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
-                .addOutputState(group)
-                .addCommand(GroupContract.Commands.Create(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
-        builder.verify(serviceHub)
+        try {
+            val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity), issuer = ourIdentity)
+            val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
+                    .addOutputState(group)
+                    .addCommand(GroupContract.Commands.Create(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
+            builder.verify(serviceHub)
 
-        val stx = serviceHub.signInitialTransaction(builder)
-        val ftx = subFlow(FinalityFlow(stx, emptyList()))
-
-        // deleting previously created lock since all of the changes are persisted on ledger
-        bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString()) {
-            logger.warn("Error when trying to delete a request for creation of Business Network Group with custom linear ID")
+            val stx = serviceHub.signInitialTransaction(builder)
+            return subFlow(FinalityFlow(stx, emptyList()))
+        } finally {
+            // deleting previously created lock since all of the changes are persisted on ledger
+            bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString()) {
+                logger.warn("Error when trying to delete a request for creation of Business Network Group with custom linear ID")
+            }
         }
-
-        return ftx
     }
 
     @Suspendable

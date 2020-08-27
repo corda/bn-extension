@@ -104,35 +104,37 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
             logger.error("Error when trying to create a pending membership request for $counterparty")
         }
 
-        // fetch observers
-        val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
-        val observers = (authorisedMemberships.map { it.state.data.identity.cordaIdentity } - ourIdentity).toSet()
+        try {
+            // fetch observers
+            val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
+            val observers = (authorisedMemberships.map { it.state.data.identity.cordaIdentity } - ourIdentity).toSet()
 
-        // build transaction
-        val membershipState = MembershipState(
-                identity = MembershipIdentity(counterparty, businessIdentity),
-                networkId = networkId,
-                status = MembershipStatus.PENDING,
-                issuer = ourIdentity,
-                participants = (observers + ourIdentity + counterparty).toList()
-        )
-        val requiredSigners = listOf(ourIdentity.owningKey, counterparty.owningKey)
-        val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
-                .addOutputState(membershipState)
-                .addCommand(MembershipContract.Commands.Request(requiredSigners), requiredSigners)
-        builder.verify(serviceHub)
+            // build transaction
+            val membershipState = MembershipState(
+                    identity = MembershipIdentity(counterparty, businessIdentity),
+                    networkId = networkId,
+                    status = MembershipStatus.PENDING,
+                    issuer = ourIdentity,
+                    participants = (observers + ourIdentity + counterparty).toList()
+            )
+            val requiredSigners = listOf(ourIdentity.owningKey, counterparty.owningKey)
+            val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
+                    .addOutputState(membershipState)
+                    .addCommand(MembershipContract.Commands.Request(requiredSigners), requiredSigners)
+            builder.verify(serviceHub)
 
-        // sign transaction
-        val selfSignedTransaction = serviceHub.signInitialTransaction(builder)
-        val allSignedTransaction = subFlow(CollectSignaturesFlow(selfSignedTransaction, listOf(session)))
+            // sign transaction
+            val selfSignedTransaction = serviceHub.signInitialTransaction(builder)
+            val allSignedTransaction = subFlow(CollectSignaturesFlow(selfSignedTransaction, listOf(session)))
 
-        // finalise transaction
-        val observerSessions = observers.map { initiateFlow(it) }.toSet()
-        subFlow(FinalityFlow(allSignedTransaction, observerSessions + session))
-
-        // deleting previously created lock since all of the changes are persisted on ledger
-        bnService.lockStorage.deleteLock(BNRequestType.PENDING_MEMBERSHIP, counterparty.toString()) {
-            logger.warn("Error when trying to delete a pending membership request for $counterparty")
+            // finalise transaction
+            val observerSessions = observers.map { initiateFlow(it) }.toSet()
+            subFlow(FinalityFlow(allSignedTransaction, observerSessions + session))
+        } finally {
+            // deleting previously created lock since all of the changes are persisted on ledger
+            bnService.lockStorage.deleteLock(BNRequestType.PENDING_MEMBERSHIP, counterparty.toString()) {
+                logger.warn("Error when trying to delete a pending membership request for $counterparty")
+            }
         }
     }
 }
