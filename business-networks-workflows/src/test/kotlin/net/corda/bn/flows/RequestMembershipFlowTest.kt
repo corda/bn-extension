@@ -24,6 +24,22 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
     }
 
     @Test(timeout = 300_000)
+    fun `request membership flow should fail if another pending membership request is already in progress`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val bnService = authorisedMember.services.cordaService(BNService::class.java)
+        bnService.lockStorage.createLock(BNRequestType.PENDING_MEMBERSHIP, regularMember.identity().toString())
+
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        assertFailsWith<FlowException> {
+            runRequestMembershipFlow(regularMember, authorisedMember, networkId)
+        }
+
+        bnService.lockStorage.deleteLock(BNRequestType.PENDING_MEMBERSHIP, regularMember.identity().toString())
+    }
+
+    @Test(timeout = 300_000)
     fun `request membership flow should fail if receiver is not member of a business network or if business network doesn't exist`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
