@@ -31,7 +31,7 @@ import javax.persistence.PersistenceException
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
  *
  * @throws DuplicateBusinessNetworkException If Business Network with [networkId] ID already exists.
- * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId]
+ * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID already exists.
  * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
  * duplicate issuance of Business Network or Business Network Group.
  */
