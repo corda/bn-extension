@@ -28,6 +28,8 @@ import net.corda.core.transactions.TransactionBuilder
  *
  * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID or [groupName] name already exists
  * in the Business Network with [networkId] ID.
+ * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+ * duplicate issuance of Business Network Group.
  */
 @InitiatingFlow
 @StartableByRPC
@@ -45,13 +47,8 @@ class CreateGroupFlow(
         val bnService = serviceHub.cordaService(BNService::class.java)
         val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
 
-        // check whether group with groupId or groupName already exists
-        if (bnService.businessNetworkGroupExists(groupId)) {
-            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
-        }
-        if (groupName != null && bnService.businessNetworkGroupExists(networkId, groupName)) {
-            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupName name already exists in Business Network with $networkId ID")
-        }
+        // check whether group already exists and whether there are same requests already submitted
+        checkGroupExistence(bnService)
 
         // get all additional participants' memberships from provided membership ids
         val additionalParticipantsMemberships = additionalParticipants.map {
@@ -97,7 +94,49 @@ class CreateGroupFlow(
         // sync memberships' participants according to new participants of the groups member is part of
         syncMembershipsParticipants(networkId, (additionalParticipantsMemberships + ourMembership).toList(), signers, bnService, notary)
 
+        // deleting previously created locks since all of the changes are persisted on ledger
+        deleteGroupRequests(bnService)
+
         return finalisedTransaction
+    }
+
+    @Suppress("ThrowsCount")
+    @Suspendable
+    private fun checkGroupExistence(bnService: BNService) {
+        // check whether group with groupId already exists
+        if (bnService.businessNetworkGroupExists(groupId)) {
+            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
+        }
+
+        // creating Business Network Group with ID creation lock so no multiple requests with same data can be made in-flight
+        bnService.lockStorage.createLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString()) {
+            logger.error("Error when trying to create a request for creation of Business Network Group with custom linear ID")
+        }
+
+        groupName?.also {
+            // check whether group with groupName already exists
+            if (bnService.businessNetworkGroupExists(networkId, it)) {
+                throw DuplicateBusinessNetworkGroupException("Business Network Group with $it name already exists in Business Network with $networkId ID")
+            }
+
+            // creating Business Network Group with specified name creation lock so no multiple requests with same data can be made in-flight
+            bnService.lockStorage.createLock(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, it) {
+                logger.error("Error when trying to create a request for creation of Business Network Group with specified name")
+            }
+        }
+    }
+
+    @Suspendable
+    private fun deleteGroupRequests(bnService: BNService) {
+        bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString()) {
+            logger.warn("Error when trying to delete a request for creation of Business Network Group with custom linear ID")
+        }
+
+        groupName?.also {
+            bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, groupName) {
+                logger.warn("Error when trying to delete a request for creation of Business Network Group with specified name")
+            }
+        }
     }
 }
 

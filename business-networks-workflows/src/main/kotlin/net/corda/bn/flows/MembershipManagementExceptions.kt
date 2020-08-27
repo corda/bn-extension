@@ -14,10 +14,16 @@ class DuplicateBusinessNetworkException(val networkId: UniqueIdentifier) : FlowE
 
 /**
  * Exception thrown whenever Business Network Group with [GroupState.linearId] already exists.
- *
- * @property groupId ID of the already existing Business Network Group.
  */
 class DuplicateBusinessNetworkGroupException(message: String) : FlowException(message)
+
+/**
+ * Exception thrown whenever Business Network request with [type] and [data] already exists in lock storage.
+ *
+ * @property type Type of the Business Network request.
+ * @property data Data of the Business Network request.
+ */
+class DuplicateBusinessNetworkRequestException(val type: BNRequestType, val data: String) : FlowException("Request of $type type with $data data already exists")
 
 /**
  * Exception thrown by any [MembershipManagementFlow] whenever Business Network with provided [MembershipState.networkId] doesn't exist.

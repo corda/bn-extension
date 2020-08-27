@@ -33,6 +33,9 @@ data class MembershipRequest(val networkId: String, val businessIdentity: BNIden
  * @property networkId ID of the Business Network that potential new member wants to join.
  * @property businessIdentity Custom business identity to be given to membership.
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
+ *
+ * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+ * duplicate pending membership issuance.
  */
 @InitiatingFlow
 @StartableByRPC
@@ -91,12 +94,21 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
         val bnService = serviceHub.cordaService(BNService::class.java)
         authorise(networkId, bnService) { it.canActivateMembership() }
 
+        val counterparty = session.counterparty
+        if (bnService.isBusinessNetworkMember(networkId, counterparty)) {
+            throw FlowException("$counterparty is already a member of Business Network with $networkId ID")
+        }
+
+        // creating pending membership lock so no multiple requests with same data can be made in-flight
+        bnService.lockStorage.createLock(BNRequestType.PENDING_MEMBERSHIP, counterparty.toString()) {
+            logger.error("Error when trying to create a pending membership request for $counterparty")
+        }
+
         // fetch observers
         val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
         val observers = (authorisedMemberships.map { it.state.data.identity.cordaIdentity } - ourIdentity).toSet()
 
         // build transaction
-        val counterparty = session.counterparty
         val membershipState = MembershipState(
                 identity = MembershipIdentity(counterparty, businessIdentity),
                 networkId = networkId,
@@ -117,6 +129,11 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
         // finalise transaction
         val observerSessions = observers.map { initiateFlow(it) }.toSet()
         subFlow(FinalityFlow(allSignedTransaction, observerSessions + session))
+
+        // deleting previously created lock since all of the changes are persisted on ledger
+        bnService.lockStorage.deleteLock(BNRequestType.PENDING_MEMBERSHIP, counterparty.toString()) {
+            logger.warn("Error when trying to delete a pending membership request for $counterparty")
+        }
     }
 }
 

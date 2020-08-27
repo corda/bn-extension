@@ -17,6 +17,46 @@ import net.corda.core.node.services.vault.builder
 import net.corda.core.serialization.SingletonSerializeAsToken
 
 /**
+ * Contains all the created Business Network Locks and creation/deletion operations over them.
+ */
+class LockStorage {
+
+    /** Mutable set of all created Business Network Locks. **/
+    private val locks: MutableSet<BNLock> = mutableSetOf()
+
+    /**
+     * Creates Business Network Lock with unique combination of request type and data to prevent user from creating
+     * multiple same requests in-flight which could result in duplicate resource issuance on ledger.
+     *
+     * @param type Type of Business Network request.
+     * @param data Data of the Business Network request.
+     * @param log Optional logging action taken if the lock already exists.
+     *
+     * @throws DuplicateBusinessNetworkRequestException If a lock with the same type and data is already present.
+     */
+    fun createLock(type: BNRequestType, data: String, log: () -> Unit = {}) {
+        if (!locks.add(BNLock(type, data))) {
+            log()
+            throw DuplicateBusinessNetworkRequestException(type, data)
+        }
+    }
+
+    /**
+     * Deletes Business Network lock created before to prevent having multiple requests in-flight. This method
+     * should be called after the data is successfully stored on all participants' ledgers.
+     *
+     * @param type Type of Business Network request.
+     * @param data Data of the Business Network request.
+     * @param log Optional logging action taken if the lock is missing.
+     */
+    fun deleteLock(type: BNRequestType, data: String, log: () -> Unit = {}) {
+        if (!locks.remove(BNLock(type, data))) {
+            log()
+        }
+    }
+}
+
+/**
  * Service which handles all Business Network related vault queries.
  *
  * Each method querying vault for Business Network information must be included here.
@@ -27,6 +67,9 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
 
     /** Identity of Business Network Service caller. **/
     private val ourIdentity = serviceHub.myInfo.legalIdentities.first()
+
+    /** Storage containing all the Business Network Locks present. **/
+    val lockStorage: LockStorage = LockStorage()
 
     /**
      * Checks whether Business Network with [networkId] ID exists.
