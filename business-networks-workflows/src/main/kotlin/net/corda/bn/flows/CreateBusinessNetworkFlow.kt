@@ -124,7 +124,7 @@ class CreateBusinessNetworkFlow(
     private fun createBusinessNetworkGroup(BNService: BNService): SignedTransaction {
         // check if business network group with groupId already exists
         if (BNService.businessNetworkGroupExists(groupId)) {
-            throw DuplicateBusinessNetworkGroupException(groupId)
+            throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
         }
 
         val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity), issuer = ourIdentity)

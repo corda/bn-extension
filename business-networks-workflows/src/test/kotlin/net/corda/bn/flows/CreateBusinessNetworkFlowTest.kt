@@ -35,8 +35,7 @@ class CreateBusinessNetworkFlowTest : MembershipManagementFlowTest(numberOfAutho
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
-        val e = assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId) }
-        assertEquals(groupId, e.groupId)
+        assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId) }
     }
 
     @Test(timeout = 300_000)

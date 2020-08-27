@@ -21,13 +21,14 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     }
 
     @Test(timeout = 300_000)
-    fun `create group flow should fail when trying to create group with already existing group ID`() {
+    fun `create group flow should fail when trying to create group with already existing group ID or name`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
-        val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
-        val e = assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateGroupFlow(authorisedMember, networkId, groupId) }
-        assertEquals(groupId, e.groupId)
+        val groupName = "default-group"
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).tx.outputStates.single() as MembershipState).networkId
+        val group = getAllGroupsFromVault(authorisedMember, networkId).single()
+        assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateGroupFlow(authorisedMember, networkId, groupId = group.linearId) }
+        assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateGroupFlow(authorisedMember, networkId, groupName = group.name) }
     }
 
     @Test(timeout = 300_000)

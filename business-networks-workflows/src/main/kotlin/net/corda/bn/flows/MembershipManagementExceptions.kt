@@ -17,7 +17,7 @@ class DuplicateBusinessNetworkException(val networkId: UniqueIdentifier) : FlowE
  *
  * @property groupId ID of the already existing Business Network Group.
  */
-class DuplicateBusinessNetworkGroupException(val groupId: UniqueIdentifier) : FlowException("Business Network Group with $groupId already exists.")
+class DuplicateBusinessNetworkGroupException(message: String) : FlowException(message)
 
 /**
  * Exception thrown by any [MembershipManagementFlow] whenever Business Network with provided [MembershipState.networkId] doesn't exist.
