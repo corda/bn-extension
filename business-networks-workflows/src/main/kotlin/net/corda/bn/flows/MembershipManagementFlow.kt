@@ -39,12 +39,13 @@ abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
             throw BusinessNetworkNotFoundException("Business Network with $networkId doesn't exist")
         }
         return try {
+            val flowName = javaClass.name
             BNService.getMembership(networkId, ourIdentity)?.apply {
                 if (!state.data.isActive()) {
                     throw IllegalMembershipStatusException("Membership owned by $ourIdentity is not active")
                 }
                 if (!authorisationMethod(state.data)) {
-                    throw MembershipAuthorisationException("$ourIdentity is not authorised to run $this")
+                    throw MembershipAuthorisationException("$ourIdentity is not authorised to run $flowName")
                 }
             } ?: throw MembershipNotFoundException("$ourIdentity is not member of a business network")
         } catch (e: IllegalStateException) {
