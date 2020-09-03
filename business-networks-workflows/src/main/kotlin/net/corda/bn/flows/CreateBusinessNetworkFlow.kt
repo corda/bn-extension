@@ -31,6 +31,8 @@ import net.corda.core.transactions.TransactionBuilder
  *
  * @throws DuplicateBusinessNetworkException If Business Network with [networkId] ID already exists.
  * @throws DuplicateBusinessNetworkGroupException If Business Network Group with [groupId] ID already exists.
+ * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+ * duplicate issuance of Business Network or Business Network Group.
  */
 @InitiatingFlow
 @StartableByRPC
@@ -45,34 +47,49 @@ class CreateBusinessNetworkFlow(
     /**
      * Issues pending membership (with new unique Business Network ID) on initiator's ledger.
      *
-     * @param BNService Service used to query vault for memberships.
+     * @param bnService Service used to query vault for memberships.
      *
      * @return Signed membership issuance transaction.
      *
      * @throws DuplicateBusinessNetworkException If Business Network with [networkId] ID already exists.
+     * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+     * duplicate issuance of Business Network.
      */
     @Suspendable
-    private fun createMembershipRequest(BNService: BNService): SignedTransaction {
+    private fun createMembershipRequest(bnService: BNService): SignedTransaction {
         // check if business network with networkId already exists
-        if (BNService.businessNetworkExists(networkId.toString())) {
+        if (bnService.businessNetworkExists(networkId.toString())) {
             throw DuplicateBusinessNetworkException(networkId)
         }
 
-        val membership = MembershipState(
-                identity = MembershipIdentity(ourIdentity, businessIdentity),
-                networkId = networkId.toString(),
-                status = MembershipStatus.PENDING,
-                issuer = ourIdentity,
-                participants = listOf(ourIdentity)
-        )
+        // creating Business Network with ID creation lock so no multiple requests with same data can be made in-flight
+        bnService.lockStorage.createLock(BNRequestType.BUSINESS_NETWORK_ID, networkId.toString()) {
+            logger.error("Error when trying to create a request for creation of a Business Network with custom network ID")
+        }
 
-        val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
-                .addOutputState(membership)
-                .addCommand(MembershipContract.Commands.Request(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
-        builder.verify(serviceHub)
+        try {
+            val membership = MembershipState(
+                    identity = MembershipIdentity(ourIdentity, businessIdentity),
+                    networkId = networkId.toString(),
+                    status = MembershipStatus.PENDING,
+                    issuer = ourIdentity,
+                    participants = listOf(ourIdentity)
+            )
 
-        val stx = serviceHub.signInitialTransaction(builder)
-        return subFlow(FinalityFlow(stx, emptyList()))
+            val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
+                    .addOutputState(membership)
+                    .addCommand(MembershipContract.Commands.Request(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
+            builder.verify(serviceHub)
+
+            val stx = serviceHub.signInitialTransaction(builder)
+
+            return subFlow(FinalityFlow(stx, emptyList()))
+        } finally {
+            // deleting previously created lock since all of the changes are persisted on ledger
+            bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_ID, networkId.toString()) {
+                logger.warn("Error when trying to delete a request for creation of a Business Network with custom network ID")
+            }
+        }
     }
 
     /**
@@ -116,25 +133,40 @@ class CreateBusinessNetworkFlow(
     /**
      * Issues initial Business Network Group on initiator's ledger.
      *
-     * @param BNService Service used to query vault for memberships.
+     * @param bnService Service used to query vault for memberships.
      *
      * @return Signed group issuance transaction.
+     *
+     * @throws DuplicateBusinessNetworkRequestException If there is race condition between flow calls which would cause
+     * duplicate issuance of Business Network Group.
      */
     @Suspendable
-    private fun createBusinessNetworkGroup(BNService: BNService): SignedTransaction {
+    private fun createBusinessNetworkGroup(bnService: BNService): SignedTransaction {
         // check if business network group with groupId already exists
-        if (BNService.businessNetworkGroupExists(groupId)) {
+        if (bnService.businessNetworkGroupExists(groupId)) {
             throw DuplicateBusinessNetworkGroupException("Business Network Group with $groupId ID already exists")
         }
 
-        val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity), issuer = ourIdentity)
-        val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
-                .addOutputState(group)
-                .addCommand(GroupContract.Commands.Create(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
-        builder.verify(serviceHub)
+        // creating Business Network Group with ID creation lock so no multiple requests with same data can be made in-flight
+        bnService.lockStorage.createLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString()) {
+            logger.error("Error when trying to create a request for creation of Business Network Group with custom linear ID")
+        }
 
-        val stx = serviceHub.signInitialTransaction(builder)
-        return subFlow(FinalityFlow(stx, emptyList()))
+        try {
+            val group = GroupState(networkId = networkId.toString(), name = groupName, linearId = groupId, participants = listOf(ourIdentity), issuer = ourIdentity)
+            val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
+                    .addOutputState(group)
+                    .addCommand(GroupContract.Commands.Create(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
+            builder.verify(serviceHub)
+
+            val stx = serviceHub.signInitialTransaction(builder)
+            return subFlow(FinalityFlow(stx, emptyList()))
+        } finally {
+            // deleting previously created lock since all of the changes are persisted on ledger
+            bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString()) {
+                logger.warn("Error when trying to delete a request for creation of Business Network Group with custom linear ID")
+            }
+        }
     }
 
     @Suspendable

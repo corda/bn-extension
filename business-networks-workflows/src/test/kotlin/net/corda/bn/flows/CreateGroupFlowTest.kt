@@ -49,6 +49,35 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     }
 
     @Test(timeout = 300_000)
+    fun `create group flow should fail if another group creation request with same data is in progress`() {
+        val authorisedMember = authorisedMembers.first()
+
+        val groupId = UniqueIdentifier()
+        val groupName = "custom-group"
+
+        val bnService = authorisedMember.services.cordaService(BNService::class.java)
+        bnService.lockStorage.createLock(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, groupName)
+
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        assertFailsWith<DuplicateBusinessNetworkRequestException> {
+            runCreateGroupFlow(authorisedMember, networkId, groupId, groupName)
+        }.apply {
+            assertEquals(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, type)
+            assertEquals(groupName, data)
+        }
+
+        assertFailsWith<DuplicateBusinessNetworkRequestException> {
+            runCreateGroupFlow(authorisedMember, networkId, groupId, groupName)
+        }.apply {
+            assertEquals(BNRequestType.BUSINESS_NETWORK_GROUP_ID, type)
+            assertEquals(groupId.toString(), data)
+        }
+
+        bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, groupName)
+        bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString())
+    }
+
+    @Test(timeout = 300_000)
     fun `create group flow should fail if invalid notary argument is provided`() {
         val authorisedMember = authorisedMembers.first()
 
