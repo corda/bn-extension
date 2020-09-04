@@ -4,7 +4,6 @@ import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.contracts.MembershipContract
 import net.corda.bn.states.BNRole
 import net.corda.bn.states.GroupState
-import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
@@ -12,6 +11,9 @@ import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
+import net.corda.core.flows.ReceiveFinalityFlow
+import net.corda.core.flows.InitiatedBy
+import net.corda.core.flows.FlowSession
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
@@ -63,7 +65,8 @@ class BNOAccessControlReportFlow(
                 .addCommand(MembershipContract.Commands.AccessControlReport(), ourIdentity.owningKey)
 
         val stx = serviceHub.signInitialTransaction(builder)
-        subFlow(FinalityFlow(stx, emptyList()))
+        val sessions = (allMembersOnTheNetwork.keys - ourIdentity).map { initiateFlow(it) }
+        subFlow(FinalityFlow(stx, sessions))
 
         return reports
     }
@@ -120,5 +123,14 @@ class BNOAccessControlReportFlow(
                 out.println()
             }
         }
+    }
+}
+
+@InitiatedBy(BNOAccessControlReportFlow::class)
+class BNOAccessControlReportObserverFlow(private val session: FlowSession) : FlowLogic<Unit>() {
+
+    @Suspendable
+    override fun call() {
+        subFlow(ReceiveFinalityFlow(session))
     }
 }
