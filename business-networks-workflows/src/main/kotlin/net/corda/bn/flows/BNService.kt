@@ -138,6 +138,13 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         }
     }
 
+    fun getAllMemberships(networkId: String): List<StateAndRef<MembershipState>> {
+        return getAllMembershipsWithStatus(
+                networkId,
+                MembershipStatus.PENDING, MembershipStatus.ACTIVE, MembershipStatus.SUSPENDED
+        )
+    }
+
     /**
      * Queries for all the membership states inside Business Network with [networkId] with one of [statuses] that are
      * part of at least one common group as the caller.

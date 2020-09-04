@@ -25,7 +25,7 @@ open class MembershipContract : Contract {
      *
      * @property requiredSigners List of all required public keys of command's signers.
      */
-    open class Commands(val requiredSigners: List<PublicKey>) : CommandData {
+    open class Commands(val requiredSigners: List<PublicKey> = emptyList()) : CommandData {
         /**
          * Command responsible for pending [MembershipState] issuance.
          *
@@ -84,6 +84,8 @@ open class MembershipContract : Contract {
          * @param requiredSigners List of all required public keys of command's signers.
          */
         class ModifyParticipants(requiredSigners: List<PublicKey>) : Commands(requiredSigners)
+
+        class AccessControlReport() : Commands()
     }
 
     /**
@@ -133,6 +135,7 @@ open class MembershipContract : Contract {
             is Commands.ModifyRoles -> verifyModifyRoles(tx, command, inputState!!, outputState!!)
             is Commands.ModifyBusinessIdentity -> verifyModifyBusinessIdentity(tx, command, inputState!!, outputState!!)
             is Commands.ModifyParticipants -> verifyModifyParticipants(tx, command, inputState!!, outputState!!)
+            is Commands.AccessControlReport -> verifyAccessControlReport(tx, command, inputState!!)
             else -> throw IllegalArgumentException("Unsupported command ${command.value}")
         }
     }
@@ -310,5 +313,15 @@ open class MembershipContract : Contract {
         "Membership participants modification transaction can only be performed on active or suspended state" using (inputMembership.isActive() || inputMembership.isSuspended())
         "Input and output state of membership participants modification transaction should have same roles" using (inputMembership.roles == outputMembership.roles)
         "Input and output state of membership participants modification transaction should have same business identity" using (inputMembership.identity.businessIdentity == outputMembership.identity.businessIdentity)
+    }
+
+    open fun verifyAccessControlReport(
+            tx: LedgerTransaction,
+            command: CommandWithParties<Commands>,
+            inputMembership: MembershipState
+    ) = requireThat {
+        "BNO role required for this flow." using (inputMembership.canSuspendMembership() && inputMembership.canRevokeMembership()
+                && inputMembership.canModifyRoles() && inputMembership.canModifyMembership() && inputMembership.canModifyGroups()
+                && inputMembership.canModifyBusinessIdentity() && inputMembership.canActivateMembership())
     }
 }

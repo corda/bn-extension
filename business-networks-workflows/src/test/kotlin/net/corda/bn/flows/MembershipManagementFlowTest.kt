@@ -209,6 +209,16 @@ abstract class MembershipManagementFlowTest(
         future.getOrThrow()
     }
 
+    protected fun runBNOAccessControlReportFlow(
+            initiator: StartedMockNode,
+            networkId: UniqueIdentifier = UniqueIdentifier(),
+            notary: Party? = null
+    ): AccessControlReport {
+        val future = initiator.startFlow(BNOAccessControlReportFlow(networkId, true, notary))
+        mockNetwork.runNetwork()
+        return future.getOrThrow()
+    }
+
     private fun addMemberToInitialGroup(initiator: StartedMockNode, networkId: String, membership: MembershipState, notary: Party?) {
         val bnService = initiator.services.cordaService(BNService::class.java)
         val group = bnService.getAllBusinessNetworkGroups(networkId).minBy { it.state.data.issued }?.state?.data
