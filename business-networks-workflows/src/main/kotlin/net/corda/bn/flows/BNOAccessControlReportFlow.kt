@@ -2,7 +2,10 @@ package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.contracts.MembershipContract
-import net.corda.bn.states.*
+import net.corda.bn.states.BNRole
+import net.corda.bn.states.GroupState
+import net.corda.bn.states.MembershipState
+import net.corda.bn.states.MembershipStatus
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.FinalityFlow
@@ -30,6 +33,7 @@ class BNOAccessControlReportFlow(
 ) : FlowLogic<AccessControlReport>() {
 
     @Suspendable
+    @Suppress("NestedBlockDepth")
     override fun call(): AccessControlReport {
         val bnService = serviceHub.cordaService(BNService::class.java)
         val ourMembership = bnService.getMembership(networkId.toString(), ourIdentity)
@@ -41,16 +45,8 @@ class BNOAccessControlReportFlow(
 
         //collect all groups and their members
         val allGroupsOnTheNetwork = getAllBusinessNetworkGroups(bnService)
-
         allGroupsOnTheNetwork.forEach {
-            val groupName = it.state.data.name
-            if(groupName != null){
-                it.state.data.participants.forEach {
-                    if(allMembersOnTheNetwork.containsKey(it)) {
-                        allMembersOnTheNetwork.get(it)!!.groups.add(groupName)
-                    }
-                }
-            }
+            collectTheGroups(it, allMembersOnTheNetwork)
         }
 
         val reports = AccessControlReport(allMembersOnTheNetwork)
@@ -59,7 +55,7 @@ class BNOAccessControlReportFlow(
             writeToFile(reports)
         }
 
-        //TODO: log the report
+        //log the report
 
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(ourMembership)
@@ -92,8 +88,19 @@ class BNOAccessControlReportFlow(
         return bnService.getAllBusinessNetworkGroups(networkId.toString())
     }
 
+    private fun collectTheGroups(groupState: StateAndRef<GroupState>, allMembersOnTheNetwork: MutableMap<AbstractParty, MemberInfos>) {
+        val groupName = groupState.state.data.name
+        if(groupName != null){
+            groupState.state.data.participants.forEach {
+                if(allMembersOnTheNetwork.containsKey(it)) {
+                    allMembersOnTheNetwork.get(it)!!.groups.add(groupName)
+                }
+            }
+        }
+    }
+
     private fun writeToFile(reports: AccessControlReport) {
-        //TODO: find a suitable place for the file
+        //find a suitable place for the file
         val fileName = "myfile.txt"
         val reportFile = File(fileName)
 

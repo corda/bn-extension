@@ -85,7 +85,7 @@ open class MembershipContract : Contract {
          */
         class ModifyParticipants(requiredSigners: List<PublicKey>) : Commands(requiredSigners)
 
-        class AccessControlReport() : Commands()
+        class AccessControlReport: Commands()
     }
 
     /**
