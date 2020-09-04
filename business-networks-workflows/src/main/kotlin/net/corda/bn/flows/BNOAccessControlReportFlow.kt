@@ -37,8 +37,9 @@ class BNOAccessControlReportFlow(
     override fun call(): AccessControlReport {
         val bnService = serviceHub.cordaService(BNService::class.java)
         val ourMembership = bnService.getMembership(networkId.toString(), ourIdentity)
+                ?: throw MembershipNotFoundException("$ourIdentity is not member of Business Network with $networkId ID")
 
-        validate(bnService, ourMembership!!)
+        validate(bnService)
 
         //list all members in the network with their membership status and roles
         val allMembersOnTheNetwork = getAllMembersWithRolesAndStatus(bnService)
@@ -67,7 +68,7 @@ class BNOAccessControlReportFlow(
         return reports
     }
 
-    private fun validate(bnService: BNService, ourMembership: StateAndRef<MembershipState>) {
+    private fun validate(bnService: BNService) {
         if(!bnService.businessNetworkExists(networkId.toString())) {
             throw BusinessNetworkNotFoundException("Business Network with $networkId doesn't exist")
         }
