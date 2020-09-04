@@ -68,14 +68,6 @@ abstract class AbstractBusinessNetworksTest {
                             assertEquals(networkId.toString(), membership.networkId)
                             assertEquals(bnoNode.identity(), membership.identity.cordaIdentity)
                             assertEquals(businessIdentity, membership.identity.businessIdentity)
-                            assertEquals(MembershipStatus.PENDING, membership.status)
-                            assertEquals(emptySet(), membership.roles)
-                        },
-                        expect { update ->
-                            val membership = update.produced.single().state.data
-                            assertEquals(networkId.toString(), membership.networkId)
-                            assertEquals(bnoNode.identity(), membership.identity.cordaIdentity)
-                            assertEquals(businessIdentity, membership.identity.businessIdentity)
                             assertEquals(MembershipStatus.ACTIVE, membership.status)
                             assertEquals(emptySet(), membership.roles)
                         },
