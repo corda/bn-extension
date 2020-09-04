@@ -45,7 +45,7 @@ class CreateBusinessNetworkFlow(
 ) : FlowLogic<SignedTransaction>() {
 
     /**
-     * Issues pending membership (with new unique Business Network ID) on initiator's ledger.
+     * Issues active membership (with new unique Business Network ID) on initiator's ledger.
      *
      * @param bnService Service used to query vault for memberships.
      *
@@ -56,7 +56,7 @@ class CreateBusinessNetworkFlow(
      * duplicate issuance of Business Network.
      */
     @Suspendable
-    private fun createMembershipRequest(bnService: BNService): SignedTransaction {
+    private fun createMembership(bnService: BNService): SignedTransaction {
         // check if business network with networkId already exists
         if (bnService.businessNetworkExists(networkId.toString())) {
             throw DuplicateBusinessNetworkException(networkId)
@@ -71,14 +71,14 @@ class CreateBusinessNetworkFlow(
             val membership = MembershipState(
                     identity = MembershipIdentity(ourIdentity, businessIdentity),
                     networkId = networkId.toString(),
-                    status = MembershipStatus.PENDING,
+                    status = MembershipStatus.ACTIVE,
                     issuer = ourIdentity,
                     participants = listOf(ourIdentity)
             )
 
             val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                     .addOutputState(membership)
-                    .addCommand(MembershipContract.Commands.Request(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
+                    .addCommand(MembershipContract.Commands.Onboard(listOf(ourIdentity.owningKey)), ourIdentity.owningKey)
             builder.verify(serviceHub)
 
             val stx = serviceHub.signInitialTransaction(builder)
@@ -90,25 +90,6 @@ class CreateBusinessNetworkFlow(
                 logger.warn("Error when trying to delete a request for creation of a Business Network with custom network ID")
             }
         }
-    }
-
-    /**
-     * Activates initiator's pending membership.
-     *
-     * @param membership State and ref pair of pending membership to be activated.
-     *
-     * @return Signed membership activation transaction.
-     */
-    @Suspendable
-    private fun activateMembership(membership: StateAndRef<MembershipState>): SignedTransaction {
-        val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
-                .addInputState(membership)
-                .addOutputState(membership.state.data.copy(status = MembershipStatus.ACTIVE, modified = serviceHub.clock.instant()))
-                .addCommand(MembershipContract.Commands.Activate(listOf(ourIdentity.owningKey), true), ourIdentity.owningKey)
-        builder.verify(serviceHub)
-
-        val stx = serviceHub.signInitialTransaction(builder)
-        return subFlow(FinalityFlow(stx, emptyList()))
     }
 
     /**
@@ -172,10 +153,8 @@ class CreateBusinessNetworkFlow(
     @Suspendable
     override fun call(): SignedTransaction {
         val bnService = serviceHub.cordaService(BNService::class.java)
-        // first issue membership with PENDING status
-        val pendingMembership = createMembershipRequest(bnService).tx.outRefsOfType(MembershipState::class.java).single()
-        // after that activate the membership
-        val activeMembership = activateMembership(pendingMembership).tx.outRefsOfType(MembershipState::class.java).single()
+        // first issue membership with ACTIVE status
+        val activeMembership = createMembership(bnService).tx.outRefsOfType(MembershipState::class.java).single()
         // give all administrative permissions to the membership
         return authoriseMembership(activeMembership).apply {
             // in the end create initial business network group
