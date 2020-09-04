@@ -36,10 +36,10 @@ abstract class MembershipManagementFlowTest(
                 TestCordapp.findCordapp("net.corda.bn.flows")
         )))
 
-        authorisedMembers = (0..numberOfAuthorisedMembers).mapIndexed { idx, _ ->
+        authorisedMembers = (0 until numberOfAuthorisedMembers).mapIndexed { idx, _ ->
             createNode(CordaX500Name.parse("O=BNO_$idx,L=New York,C=US"))
         }
-        regularMembers = (0..numberOfRegularMembers).mapIndexed { idx, _ ->
+        regularMembers = (0 until numberOfRegularMembers).mapIndexed { idx, _ ->
             createNode(CordaX500Name.parse("O=Member_$idx,L=New York,C=US"))
         }
 
@@ -95,6 +95,21 @@ abstract class MembershipManagementFlowTest(
         val membership = runRequestMembershipFlow(initiator, authorisedNode, networkId, businessIdentity, notary).tx.outputStates.single() as MembershipState
         return runActivateMembershipFlow(authorisedNode, membership.linearId, notary).apply {
             addMemberToInitialGroup(authorisedNode, networkId, membership, notary)
+        }
+    }
+
+    protected fun runOnboardMembershipFlow(
+            initiator: StartedMockNode,
+            networkId: String,
+            onboardedParty: Party,
+            businessIdentity: BNIdentity? = null,
+            notary: Party? = null
+    ): SignedTransaction {
+        val future = initiator.startFlow(OnboardMembershipFlow(networkId, onboardedParty, businessIdentity, notary))
+        mockNetwork.runNetwork()
+        return future.getOrThrow().apply {
+            val membership = tx.outputStates.single() as MembershipState
+            addMemberToInitialGroup(initiator, networkId, membership, notary)
         }
     }
 
