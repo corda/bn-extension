@@ -25,7 +25,7 @@ open class MembershipContract : Contract {
      *
      * @property requiredSigners List of all required public keys of command's signers.
      */
-    open class Commands(val requiredSigners: List<PublicKey> = emptyList()) : CommandData {
+    open class Commands(val requiredSigners: List<PublicKey>) : CommandData {
         /**
          * Command responsible for pending [MembershipState] issuance.
          *
