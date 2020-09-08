@@ -5,6 +5,7 @@ import net.corda.bn.states.BNRole
 import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipIdentity
 import net.corda.bn.states.MembershipStatus
+import net.corda.bn.states.BNORole
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
@@ -22,18 +23,27 @@ data class MemberInfos(val membershipStatus: MembershipStatus, val groups: Mutab
 @CordaSerializable
 data class GroupInfos(val name: String?, val participants: List<Party>)
 
+/**
+ * This flow can be initiated by only authorised members with BNO role.
+ * It will create a report which contains data about all the members on the network.
+ *
+ * @property networkId ID of the Business Network, where the participants are present.
+ * @property path The chosen path for the file to be placed.
+ *
+ * @return [AccessControlReport] containing the information about the members.
+ */
 @InitiatingFlow
 @StartableByRPC
 class BNOAccessControlReportFlow(
         private val networkId: String,
-        private val writeToFile: Boolean = false
+        private val path: String? = System.getProperty("user.dir")
 ) : MembershipManagementFlow<AccessControlReport>() {
 
     @Suspendable
     override fun call(): AccessControlReport {
         val bnService = serviceHub.cordaService(BNService::class.java)
 
-        authorise(networkId, bnService) { it.canActivateMembership() && it.canModifyBusinessIdentity() && it.canModifyGroups() && it.canModifyMembership() && it.canModifyRoles() && it.canRevokeMembership() && it.canSuspendMembership() }
+        authorise(networkId, bnService) { membership -> membership.roles.any { it is BNORole } }
 
         //list all members in the network with their membership status and roles
         val allMembersOnTheNetwork = getAllMembersWithRolesAndStatus(bnService)
@@ -48,13 +58,7 @@ class BNOAccessControlReportFlow(
 
         val reports = AccessControlReport(allMembersOnTheNetwork, groupInfos)
 
-        if(writeToFile) {
-            writeToFile(reports)
-        }
-
-        logReports(reports, logger::info) {
-            logger.info("")
-        }
+        writeToFile(reports)
 
         return reports
     }
@@ -87,8 +91,8 @@ class BNOAccessControlReportFlow(
 
     private fun writeToFile(reports: AccessControlReport) {
         val currentTime = Instant.now()
-        //find a suitable place for the file
-        val fileName = "bno-access-control-report-$currentTime.txt"
+        val fileName = path + "/bno-access-control-report-$currentTime.txt"
+        logger.info("Writing report file to path ${path}\\")
         val reportFile = File(fileName)
 
         reportFile.printWriter().use { out ->

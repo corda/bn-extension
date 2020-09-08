@@ -211,10 +211,9 @@ abstract class MembershipManagementFlowTest(
 
     protected fun runBNOAccessControlReportFlow(
             initiator: StartedMockNode,
-            networkId: UniqueIdentifier = UniqueIdentifier(),
-            notary: Party? = null
+            networkId: String
     ): AccessControlReport {
-        val future = initiator.startFlow(BNOAccessControlReportFlow(networkId, true, notary))
+        val future = initiator.startFlow(BNOAccessControlReportFlow(networkId))
         mockNetwork.runNetwork()
         return future.getOrThrow()
     }

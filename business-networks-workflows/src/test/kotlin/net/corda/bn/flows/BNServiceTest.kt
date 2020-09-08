@@ -287,4 +287,26 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         assertTrue(authorisedMemberService.getAllBusinessNetworkGroups(networkId).isNotEmpty())
         assertFailsWith<IllegalStateException> { regularMemberService.getAllBusinessNetworkGroups(networkId) }
     }
+
+    @Test(timeout = 300_000)
+    fun `get all memberships method should work`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+        val networkId = UniqueIdentifier()
+
+        runCreateBusinessNetworkFlow(authorisedMember, networkId = networkId)
+
+        val authorisedMemberService = authorisedMember.services.cordaService(BNService::class.java)
+
+        assertEquals(1, authorisedMemberService.getAllMemberships(networkId.toString()).size)
+        assertEquals(authorisedMember.info.legalIdentities.get(0),
+                authorisedMemberService.getAllMemberships(networkId.toString()).get(0).state.data.identity.cordaIdentity)
+
+        runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId.toString())
+
+        assertEquals(2, authorisedMemberService.getAllMemberships(networkId.toString()).size)
+        assertEquals(listOf(authorisedMember.info.legalIdentities.get(0), regularMember.info.legalIdentities.get(0)),
+                listOf(authorisedMemberService.getAllMemberships(networkId.toString()).get(0).state.data.identity.cordaIdentity,
+                        authorisedMemberService.getAllMemberships(networkId.toString()).get(1).state.data.identity.cordaIdentity))
+    }
 }
