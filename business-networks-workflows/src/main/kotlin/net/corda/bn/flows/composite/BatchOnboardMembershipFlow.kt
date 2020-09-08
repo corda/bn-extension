@@ -29,9 +29,10 @@ data class OnboardingInfo(val party: Party, val businessIdentity: BNIdentity? = 
 /**
  * This composite flow is activated by any member authorised to activate membership and modify groups. Onboards
  * provided memberships and adds them to specific or the default group if the specific one is not provided. Failed
- * onboarding requests are be logged and associated members are not added to the group.
+ * onboarding requests are logged and associated members are not added to the group.
  *
- * @property onboardedParties List of parties to be onboarded and group where to be added after onboarding.
+ * @property networkId ID of the Business Network where members are onboarded.
+ * @property onboardedParties Set of parties to be onboarded and group where to be added after onboarding.
  * @property defaultGroupId ID of the group where members are added if the specific group ID is not provided in their
  * [OnboardingInfo].
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.

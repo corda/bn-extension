@@ -18,7 +18,7 @@ import java.lang.Exception
  *
  * @property membershipId ID of the membership to be activated.
  * @property groupId Optional specific group ID where membership will be added after activation. Membership will be
- * added to the default group if the specfic one is not provided.
+ * added to the default group if the specific one is not provided.
  */
 @CordaSerializable
 data class ActivationInfo(val membershipId: UniqueIdentifier, val groupId: UniqueIdentifier? = null)
@@ -26,9 +26,9 @@ data class ActivationInfo(val membershipId: UniqueIdentifier, val groupId: Uniqu
 /**
  * This composite flow is activated by any member authorised to activate membership and modify groups. Activates
  * provided memberships and adds them to specific or the default group if the specific one is not provided. Failed
- * activations are be logged and associated members are not added to the group.
+ * activations are logged and associated members are not added to the group.
  *
- * @property memberships List of memberships to be activated and group where to be added after activation.
+ * @property memberships Set of memberships' [ActivationInfo]s.
  * @property defaultGroupId ID of the group where members are added if the specific group ID is not provided in their
  * [ActivationInfo].
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
