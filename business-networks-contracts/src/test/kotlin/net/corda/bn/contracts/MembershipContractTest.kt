@@ -227,6 +227,39 @@ class MembershipContractTest {
     }
 
     @Test(timeout = 300_000)
+    fun `test onboard membership command contract verification`() {
+        ledgerServices.ledger {
+            val output = membershipState.copy(status = MembershipStatus.ACTIVE)
+            transaction {
+                input(MembershipContract.CONTRACT_NAME, output)
+                output(MembershipContract.CONTRACT_NAME, output)
+                command(listOf(bnoIdentity.owningKey, memberIdentity.owningKey), MembershipContract.Commands.Onboard(listOf(bnoIdentity.owningKey, memberIdentity.owningKey)))
+                this `fails with` "Membership onboarding transaction shouldn't contain any inputs"
+            }
+            transaction {
+                output(MembershipContract.CONTRACT_NAME, output.copy(status = MembershipStatus.PENDING))
+                command(listOf(bnoIdentity.owningKey, memberIdentity.owningKey), MembershipContract.Commands.Onboard(listOf(bnoIdentity.owningKey, memberIdentity.owningKey)))
+                this `fails with` "Membership onboarding transaction should contain output state in ACTIVE status"
+            }
+            transaction {
+                output(MembershipContract.CONTRACT_NAME, output.copy(roles = setOf(BNORole())))
+                command(listOf(bnoIdentity.owningKey, memberIdentity.owningKey), MembershipContract.Commands.Onboard(listOf(bnoIdentity.owningKey, memberIdentity.owningKey)))
+                this `fails with` "Membership onboarding transaction should issue membership with empty roles set"
+            }
+            transaction {
+                output(MembershipContract.CONTRACT_NAME, output)
+                command(bnoIdentity.owningKey, MembershipContract.Commands.Onboard(listOf(bnoIdentity.owningKey)))
+                this `fails with` "Onboarded membership owner should be required signer of membership onboarding transaction"
+            }
+            transaction {
+                output(MembershipContract.CONTRACT_NAME, output)
+                command(listOf(bnoIdentity.owningKey, memberIdentity.owningKey), MembershipContract.Commands.Onboard(listOf(bnoIdentity.owningKey, memberIdentity.owningKey)))
+                verifies()
+            }
+        }
+    }
+
+    @Test(timeout = 300_000)
     fun `test suspend membership command contract verification`() {
         ledgerServices.ledger {
             val input = membershipState
