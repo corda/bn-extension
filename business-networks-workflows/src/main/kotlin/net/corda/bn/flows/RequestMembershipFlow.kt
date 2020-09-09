@@ -9,7 +9,6 @@ import net.corda.bn.states.MembershipStatus
 import net.corda.core.flows.CollectSignaturesFlow
 import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowException
-import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.FlowSession
 import net.corda.core.flows.InitiatedBy
 import net.corda.core.flows.InitiatingFlow

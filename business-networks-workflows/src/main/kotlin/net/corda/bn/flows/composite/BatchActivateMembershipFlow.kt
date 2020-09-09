@@ -8,7 +8,6 @@ import net.corda.bn.flows.MembershipManagementFlow
 import net.corda.bn.flows.MembershipNotFoundException
 import net.corda.bn.flows.ModifyGroupFlow
 import net.corda.core.contracts.UniqueIdentifier
-import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable

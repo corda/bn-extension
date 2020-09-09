@@ -10,7 +10,6 @@ import net.corda.bn.flows.OnboardMembershipFlow
 import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
-import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
