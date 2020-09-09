@@ -96,6 +96,7 @@ allprojects {
                 exclude group: 'co.paralleluniverse', module: 'quasar-core'
             }
             cordaRuntime "$cordaReleaseGroup:corda:$cordaVersion"
+            cordaCompile "net.corda:corda-jackson:$corda_release_version"
         }
     }
 

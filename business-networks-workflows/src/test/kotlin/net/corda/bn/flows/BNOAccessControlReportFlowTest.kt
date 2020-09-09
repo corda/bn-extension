@@ -1,7 +1,6 @@
 package net.corda.bn.flows
 
 import net.corda.bn.states.MembershipState
-import net.corda.bn.states.MembershipIdentity
 import net.corda.bn.states.BNORole
 import net.corda.bn.states.MembershipStatus
 import net.corda.core.contracts.UniqueIdentifier
@@ -21,11 +20,7 @@ class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuth
 
         runCreateBusinessNetworkFlow(authorisedMember, networkId = networkId)
 
-        runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId.toString()).run {
-            assertEquals(1, tx.inputs.size)
-            verifyRequiredSignatures()
-            tx.outputs.single() to tx.commands.single()
-        }
+        runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId.toString())
 
         assertFailsWith<MembershipAuthorisationException> { runBNOAccessControlReportFlow(regularMember, networkId.toString()) }
     }
@@ -47,21 +42,33 @@ class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuth
 
         val accessControlReport = runBNOAccessControlReportFlow(authorisedMember, networkId.toString())
 
-        val infoForAuthorisedMember = accessControlReport.members.get(MembershipIdentity(authorisedMember.info.legalIdentities.get(0), null))
-        assertTrue { infoForAuthorisedMember!!.roles.contains(BNORole()) }
+        val infoForAuthorisedMember = accessControlReport.members.filter {
+            it.cordaIdentity == authorisedMember.info.legalIdentities[0]
+        }.single()
 
-        val infoForFirstRegularMember = accessControlReport.members.get(MembershipIdentity(firstRegularMember.info.legalIdentities.get(0), null))
-        assertEquals(MembershipStatus.ACTIVE, infoForFirstRegularMember!!.membershipStatus)
+        assertTrue { infoForAuthorisedMember.roles.contains(BNORole()) }
+
+        val infoForFirstRegularMember = accessControlReport.members.filter {
+            it.cordaIdentity == firstRegularMember.info.legalIdentities[0]
+        }.single()
+
+        assertEquals(MembershipStatus.ACTIVE, infoForFirstRegularMember.membershipStatus)
         assertTrue(infoForFirstRegularMember.groups.contains("my-group"))
 
-        val infoForSecondRegularMember = accessControlReport.members.get(MembershipIdentity(secondRegularMember.info.legalIdentities.get(0), null))
-        assertEquals(MembershipStatus.PENDING, infoForSecondRegularMember!!.membershipStatus)
+        val infoForSecondRegularMember = accessControlReport.members.filter {
+            it.cordaIdentity == secondRegularMember.info.legalIdentities[0]
+        }.single()
+
+        assertEquals(MembershipStatus.PENDING, infoForSecondRegularMember.membershipStatus)
 
         runSuspendMembershipFlow(authorisedMember, membership.linearId)
 
         val newAccessControlReport = runBNOAccessControlReportFlow(authorisedMember, networkId.toString())
 
-        val newInfoForFirstRegularMember = newAccessControlReport.members.get(MembershipIdentity(firstRegularMember.info.legalIdentities.get(0), null))
-        assertEquals(MembershipStatus.SUSPENDED, newInfoForFirstRegularMember!!.membershipStatus)
+        val newInfoForFirstRegularMember = newAccessControlReport.members.filter {
+            it.cordaIdentity == firstRegularMember.info.legalIdentities[0]
+        }.single()
+
+        assertEquals(MembershipStatus.SUSPENDED, newInfoForFirstRegularMember.membershipStatus)
     }
 }

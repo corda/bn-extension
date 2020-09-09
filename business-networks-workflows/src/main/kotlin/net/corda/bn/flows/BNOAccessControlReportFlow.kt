@@ -1,11 +1,16 @@
 package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import net.corda.bn.states.BNRole
 import net.corda.bn.states.GroupState
-import net.corda.bn.states.MembershipIdentity
 import net.corda.bn.states.MembershipStatus
 import net.corda.bn.states.BNORole
+import net.corda.bn.states.BNIdentity
+import net.corda.client.jackson.JacksonSupport
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
@@ -15,13 +20,27 @@ import java.io.File
 import java.time.Instant
 
 @CordaSerializable
-data class AccessControlReport(val members: MutableMap<MembershipIdentity, MemberInfos>, val groups: MutableSet<GroupInfos>)
+data class AccessControlReport(
+    val members: List<AccessControlMember>,
+    val groups: Set<GroupInfo>
+)
 
 @CordaSerializable
-data class MemberInfos(val membershipStatus: MembershipStatus, val groups: MutableSet<String> = mutableSetOf(), val roles: Set<BNRole>)
+data class AccessControlMember(
+        val cordaIdentity: Party,
+        val businessIdentity: BNIdentity? = null,
+        val membershipStatus: MembershipStatus,
+        val groups: Set<String?>,
+
+        @JsonSerialize(using = RoleSerializer::class)
+        val roles: Set<BNRole>
+)
 
 @CordaSerializable
-data class GroupInfos(val name: String?, val participants: List<Party>)
+data class GroupInfo(
+        val name: String?,
+        val participants: List<Party>
+)
 
 /**
  * This flow can be initiated by only authorised members with BNO role.
@@ -36,7 +55,8 @@ data class GroupInfos(val name: String?, val participants: List<Party>)
 @StartableByRPC
 class BNOAccessControlReportFlow(
         private val networkId: String,
-        private val path: String? = System.getProperty("user.dir")
+        private val path: String? = System.getProperty("user.dir"),
+        private val fileName: String? = "bno-access-control-report"
 ) : MembershipManagementFlow<AccessControlReport>() {
 
     @Suspendable
@@ -45,91 +65,96 @@ class BNOAccessControlReportFlow(
 
         authorise(networkId, bnService) { membership -> membership.roles.any { it is BNORole } }
 
-        //list all members in the network with their membership status and roles
+        // list all members in the network with their membership status and roles
         val allMembersOnTheNetwork = getAllMembersWithRolesAndStatus(bnService)
 
-        //collect all groups and their members
-        val allGroupsOnTheNetwork = getAllBusinessNetworkGroups(bnService)
-        val groupInfos: MutableSet<GroupInfos> = mutableSetOf()
-        allGroupsOnTheNetwork.forEach {
-            collectTheGroupsForMembers(it, allMembersOnTheNetwork)
-            groupInfos.add(GroupInfos(it.state.data.name, it.state.data.participants))
-        }
+        // collect all groups and their members
+        val groupInfos = getAllBusinessNetworkGroups(bnService).map {
+            GroupInfo(it.state.data.name, it.state.data.participants)
+        }.toSet()
 
-        val reports = AccessControlReport(allMembersOnTheNetwork, groupInfos)
+        // Compare the groups and their members with our participants and update the membership if needed
+        val allMembersWithGroups = collectTheGroupsForMembers(
+                groupInfos,
+                allMembersOnTheNetwork
+        )
+
+        val reports = AccessControlReport(allMembersWithGroups, groupInfos)
 
         writeToFile(reports)
 
         return reports
     }
 
-    private fun getAllMembersWithRolesAndStatus(bnService: BNService): MutableMap<MembershipIdentity, MemberInfos> {
-        val allMembers = mutableMapOf<MembershipIdentity, MemberInfos>()
-
-        bnService.getAllMemberships(networkId).forEach { it ->
-            allMembers.put(it.state.data.identity,
-                                MemberInfos(membershipStatus = it.state.data.status,
-                                roles = it.state.data.roles))
+    private fun getAllMembersWithRolesAndStatus(bnService: BNService): List<AccessControlMember> {
+        return bnService.getAllMemberships(networkId).map {
+            val stateData = it.state.data
+            AccessControlMember(
+                    stateData.identity.cordaIdentity,
+                    stateData.identity.businessIdentity,
+                    stateData.status,
+                    emptySet(),
+                    stateData.roles
+            )
         }
-        return allMembers
     }
 
     private fun getAllBusinessNetworkGroups(bnService: BNService): List<StateAndRef<GroupState>> {
         return bnService.getAllBusinessNetworkGroups(networkId)
     }
 
-    private fun collectTheGroupsForMembers(groupState: StateAndRef<GroupState>, allMembersOnTheNetwork: MutableMap<MembershipIdentity, MemberInfos>) {
-        val groupName = groupState.state.data.name
-        if(groupName != null){
-            allMembersOnTheNetwork.forEach { (key, value) ->
-                if(groupState.state.data.participants.contains(key.cordaIdentity)) {
-                    value.groups.add(groupName)
-                }
+    private fun collectTheGroupsForMembers(groupInfos: Set<GroupInfo>,
+                                           allMembersOnTheNetwork: List<AccessControlMember>)
+            : List<AccessControlMember> {
+
+        return allMembersOnTheNetwork.map { member ->
+            val groupsPresent = groupInfos.filter { groupState ->
+                val participants = groupState.participants
+                participants.contains(member.cordaIdentity)
+            }.map {
+                it.name
             }
+
+            member.copy(groups = member.groups + groupsPresent)
         }
     }
 
     private fun writeToFile(reports: AccessControlReport) {
-        val currentTime = Instant.now()
-        val fileName = path + "/bno-access-control-report-$currentTime.txt"
+        val fileName = "$path/$fileName-${Instant.now()}"
         logger.info("Writing report file to path ${path}\\")
         val reportFile = File(fileName)
 
         reportFile.printWriter().use { out ->
-            logReports(reports, out::println, out::println)
+            writeJSON(reports)
         }
     }
 
-    private fun logReports(reports: AccessControlReport, loggerFunction: (String) -> Unit, newLineFunction: () -> Unit) {
-        loggerFunction("Access Control report for network $networkId")
-        newLineFunction()
+    private fun writeJSON(reports: AccessControlReport) {
+        val mapper = JacksonSupport.createNonRpcMapper()
+        mapper.writeValueAsString(reports)
+    }
+}
 
-        loggerFunction("Participants on the network: ")
-        newLineFunction()
-        reports.members.forEach { party, infos ->
-            loggerFunction("Party identity:")
-            loggerFunction("Corda identity: ${party.cordaIdentity}")
-            loggerFunction("Business idenity: ${party.businessIdentity}")
-            loggerFunction("Membership status: ${infos.membershipStatus}")
-            loggerFunction("Groups: ${infos.groups}")
-            loggerFunction("Roles:")
-            if(infos.roles.isEmpty()) {
-                loggerFunction("There are no roles associated with this identity.")
-            } else {
-                infos.roles.forEach {
-                    loggerFunction("Name of the role: ${it.name}")
-                    loggerFunction("Permissions: ${it.permissions}")
-                }
+class RoleSerializer : JsonSerializer<Set<BNRole>>() {
+    override fun serialize(value: Set<BNRole>?, gen: JsonGenerator?, serializers: SerializerProvider?) {
+        gen?.writeStartArray()
+        value?.forEach {
+            gen?.writeStartObject()
+
+            // "name": "ABC"
+            gen?.writeFieldName("name")
+            gen?.writeString(it.name)
+
+            // "permissions": ["X", "Y", "Z"]
+            gen?.writeFieldName("permissions")
+            gen?.writeStartArray()
+            it.permissions.forEach {
+                gen?.writeString(it.toString())
             }
-            newLineFunction()
-        }
+            gen?.writeEndArray()
 
-        loggerFunction("Groups on the network: ")
-        newLineFunction()
-        reports.groups.forEach {
-            loggerFunction("Name of the group: ${it.name}")
-            loggerFunction("Participants: ${it.participants}")
-            newLineFunction()
+            gen?.writeEndObject()
         }
+        gen?.writeEndArray()
     }
 }
