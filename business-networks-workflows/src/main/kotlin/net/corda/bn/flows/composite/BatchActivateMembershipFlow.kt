@@ -4,6 +4,7 @@ import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.flows.ActivateMembershipFlow
 import net.corda.bn.flows.BNService
 import net.corda.bn.flows.BusinessNetworkGroupNotFoundException
+import net.corda.bn.flows.MembershipManagementFlow
 import net.corda.bn.flows.MembershipNotFoundException
 import net.corda.bn.flows.ModifyGroupFlow
 import net.corda.core.contracts.UniqueIdentifier
@@ -38,11 +39,13 @@ class BatchActivateMembershipFlow(
         private val memberships: Set<ActivationInfo>,
         private val defaultGroupId: UniqueIdentifier,
         private val notary: Party? = null
-) : FlowLogic<Unit>() {
+) : MembershipManagementFlow<Unit>() {
 
     @Suppress("TooGenericExceptionCaught")
     @Suspendable
     override fun call() {
+        auditLogger.info("$ourIdentity started batch activation of $memberships memberships with $defaultGroupId default placement group")
+
         val groups = mutableMapOf<UniqueIdentifier, MutableList<UniqueIdentifier>>()
         memberships.forEach { (membershipId, groupId) ->
             try {
@@ -51,6 +54,7 @@ class BatchActivateMembershipFlow(
                     oldValue.apply { add(membershipId) }
                 }
 
+                auditLogger.info("$ourIdentity successfully activated membership with $membershipId linear ID")
                 logger.info("Successfully activated membership with $membershipId linear ID")
             } catch (e: Exception) {
                 logger.error("Failed to activate membership with $membershipId linear ID")
@@ -71,6 +75,7 @@ class BatchActivateMembershipFlow(
 
                 subFlow(ModifyGroupFlow(groupId, null, oldParticipants.toSet() + participants, notary))
 
+                auditLogger.info("$ourIdentity successfully added activated members to group with $groupId linear ID")
                 logger.info("Successfully added activated members to group with $groupId linear ID")
             } catch (e: Exception) {
                 logger.error("Failed to add activated members to group with $groupId linear ID")

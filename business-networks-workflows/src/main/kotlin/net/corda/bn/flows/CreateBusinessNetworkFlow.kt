@@ -12,7 +12,6 @@ import net.corda.bn.states.MembershipStatus
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.FinalityFlow
-import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
@@ -42,7 +41,7 @@ class CreateBusinessNetworkFlow(
         private val groupId: UniqueIdentifier = UniqueIdentifier(),
         private val groupName: String? = null,
         private val notary: Party? = null
-) : FlowLogic<SignedTransaction>() {
+) : MembershipManagementFlow<SignedTransaction>() {
 
     /**
      * Issues active membership (with new unique Business Network ID) on initiator's ledger.
@@ -152,13 +151,19 @@ class CreateBusinessNetworkFlow(
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started creation of Business Network with $networkId network ID containing initial Business Network Group with " +
+                "$groupId group ID and $groupName as group name")
+
         val bnService = serviceHub.cordaService(BNService::class.java)
         // first issue membership with ACTIVE status
         val activeMembership = createMembership(bnService).tx.outRefsOfType(MembershipState::class.java).single()
         // give all administrative permissions to the membership
         return authoriseMembership(activeMembership).apply {
+            auditLogger.info("$ourIdentity successfully created Business Network with $networkId network ID")
+
             // in the end create initial business network group
             createBusinessNetworkGroup(bnService)
+            auditLogger.info("$ourIdentity successfully created initial Business Network Group with $groupId group ID and $groupName as group name")
         }
     }
 }

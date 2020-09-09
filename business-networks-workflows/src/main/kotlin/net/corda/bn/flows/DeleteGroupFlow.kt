@@ -28,6 +28,8 @@ class DeleteGroupFlow(private val groupId: UniqueIdentifier, private val notary:
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started deletion of Business Network Group with $groupId group ID")
+
         // fetch group state with groupId linear ID
         val bnService = serviceHub.cordaService(BNService::class.java)
         val group = bnService.getBusinessNetworkGroup(groupId)
@@ -67,6 +69,8 @@ class DeleteGroupFlow(private val groupId: UniqueIdentifier, private val notary:
 
         // sync memberships' participants according to removed participants of the groups member is part of
         syncMembershipsParticipants(networkId, oldParticipantsMemberships, signers, bnService, notary)
+
+        auditLogger.info("$ourIdentity successfully deleted Business Network Group with $groupId group ID")
 
         return finalisedTransaction
     }
