@@ -125,13 +125,9 @@ class BNOAccessControlReportFlow(
         val reportFile = File(fileName)
 
         reportFile.printWriter().use { out ->
-            writeJSON(reports)
+            val mapper = JacksonSupport.createNonRpcMapper()
+            out.println(mapper.writeValueAsString(reports))
         }
-    }
-
-    private fun writeJSON(reports: AccessControlReport) {
-        val mapper = JacksonSupport.createNonRpcMapper()
-        mapper.writeValueAsString(reports)
     }
 }
 
