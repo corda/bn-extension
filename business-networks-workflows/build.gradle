@@ -31,7 +31,6 @@ configurations {
 }
 
 dependencies {
-    compile "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion"
     cordaRuntime("$cordaReleaseGroup:corda:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
     }

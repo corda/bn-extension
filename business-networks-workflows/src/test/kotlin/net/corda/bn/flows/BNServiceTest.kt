@@ -300,7 +300,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
 
         assertEquals(1, authorisedMemberService.getAllMemberships(networkId.toString()).size)
         assertEquals(authorisedMember.info.legalIdentities.get(0),
-                authorisedMemberService.getAllMemberships(networkId.toString()).get(0).state.data.identity.cordaIdentity)
+                authorisedMemberService.getAllMemberships(networkId.toString()).single().state.data.identity.cordaIdentity)
 
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId.toString())
 

@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1, numberOfRegularMembers = 2) {
 
     @Test(timeout = 300_000)
-    fun `bno access control flow fails with MembershipAuthorisationException`() {
+    fun `bno access control flow fails with MembershipAuthorisationException when member is not authorised to run the flow`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
@@ -46,14 +46,14 @@ class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuth
             it.cordaIdentity == authorisedMember.info.legalIdentities[0]
         }.single()
 
-        assertTrue { infoForAuthorisedMember.roles.contains(BNORole()) }
+        assertTrue(BNORole() in infoForAuthorisedMember.roles)
 
         val infoForFirstRegularMember = accessControlReport.members.filter {
             it.cordaIdentity == firstRegularMember.info.legalIdentities[0]
         }.single()
 
         assertEquals(MembershipStatus.ACTIVE, infoForFirstRegularMember.membershipStatus)
-        assertTrue(infoForFirstRegularMember.groups.contains("my-group"))
+        assertTrue("my-group" in infoForFirstRegularMember.groups)
 
         val infoForSecondRegularMember = accessControlReport.members.filter {
             it.cordaIdentity == secondRegularMember.info.legalIdentities[0]

@@ -6,12 +6,10 @@ import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import net.corda.bn.states.BNRole
-import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipStatus
 import net.corda.bn.states.BNORole
 import net.corda.bn.states.BNIdentity
 import net.corda.client.jackson.JacksonSupport
-import net.corda.core.contracts.StateAndRef
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
@@ -19,12 +17,18 @@ import net.corda.core.serialization.CordaSerializable
 import java.io.File
 import java.time.Instant
 
+/**
+ * Data class for storing information about a members and groups available on the network.
+ */
 @CordaSerializable
 data class AccessControlReport(
     val members: List<AccessControlMember>,
     val groups: Set<GroupInfo>
 )
 
+/**
+ * Data class for storing basic information about a member.
+ */
 @CordaSerializable
 data class AccessControlMember(
         val cordaIdentity: Party,
@@ -36,6 +40,9 @@ data class AccessControlMember(
         val roles: Set<BNRole>
 )
 
+/**
+ * Data class for storing basic information about a group.
+ */
 @CordaSerializable
 data class GroupInfo(
         val name: String?,
@@ -43,13 +50,14 @@ data class GroupInfo(
 )
 
 /**
- * This flow can be initiated by only authorised members with BNO role.
- * It will create a report which contains data about all the members on the network.
+ * This flow can be initiated by only authorised members with [BNORole].
+ * It will create a report which contains data about all the members and groups initiator is part of on the network.
  *
  * @property networkId ID of the Business Network, where the participants are present.
  * @property path The chosen path for the file to be placed.
+ * @property fileName The chosen file name of the report file.
  *
- * @return [AccessControlReport] containing the information about the members.
+ * @return [AccessControlReport] containing the information about the members and groups.
  */
 @InitiatingFlow
 @StartableByRPC
@@ -69,7 +77,7 @@ class BNOAccessControlReportFlow(
         val allMembersOnTheNetwork = getAllMembersWithRolesAndStatus(bnService)
 
         // collect all groups and their members
-        val groupInfos = getAllBusinessNetworkGroups(bnService).map {
+        val groupInfos = bnService.getAllBusinessNetworkGroups(networkId).map {
             GroupInfo(it.state.data.name, it.state.data.participants)
         }.toSet()
 
@@ -79,11 +87,9 @@ class BNOAccessControlReportFlow(
                 allMembersOnTheNetwork
         )
 
-        val reports = AccessControlReport(allMembersWithGroups, groupInfos)
-
-        writeToFile(reports)
-
-        return reports
+        return AccessControlReport(allMembersWithGroups, groupInfos).also {
+            writeToFile(it)
+        }
     }
 
     private fun getAllMembersWithRolesAndStatus(bnService: BNService): List<AccessControlMember> {
@@ -99,18 +105,13 @@ class BNOAccessControlReportFlow(
         }
     }
 
-    private fun getAllBusinessNetworkGroups(bnService: BNService): List<StateAndRef<GroupState>> {
-        return bnService.getAllBusinessNetworkGroups(networkId)
-    }
-
     private fun collectTheGroupsForMembers(groupInfos: Set<GroupInfo>,
                                            allMembersOnTheNetwork: List<AccessControlMember>)
             : List<AccessControlMember> {
-
         return allMembersOnTheNetwork.map { member ->
             val groupsPresent = groupInfos.filter { groupState ->
                 val participants = groupState.participants
-                participants.contains(member.cordaIdentity)
+                member.cordaIdentity in participants
             }.map {
                 it.name
             }
