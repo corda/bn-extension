@@ -1,5 +1,9 @@
 package net.corda.bn.flows
 
+import net.corda.bn.flows.composite.ActivationInfo
+import net.corda.bn.flows.composite.BatchActivateMembershipFlow
+import net.corda.bn.flows.composite.BatchOnboardMembershipFlow
+import net.corda.bn.flows.composite.OnboardingInfo
 import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.BNRole
 import net.corda.bn.states.GroupState
@@ -180,6 +184,29 @@ abstract class MembershipManagementFlowTest(
         val future = initiator.startFlow(DeleteGroupFlow(groupId, notary))
         mockNetwork.runNetwork()
         return future.getOrThrow()
+    }
+
+    protected fun runBatchActivateMembershipFlow(
+            initiator: StartedMockNode,
+            memberships: Set<ActivationInfo>,
+            defaultGroupId: UniqueIdentifier,
+            notary: Party? = null
+    ) {
+        val future = initiator.startFlow(BatchActivateMembershipFlow(memberships, defaultGroupId, notary))
+        mockNetwork.runNetwork()
+        future.getOrThrow()
+    }
+
+    protected fun runBatchOnboardMembershipFlow(
+            initiator: StartedMockNode,
+            networkId: String,
+            onboardedParties: Set<OnboardingInfo>,
+            defaultGroupId: UniqueIdentifier,
+            notary: Party? = null
+    ) {
+        val future = initiator.startFlow(BatchOnboardMembershipFlow(networkId, onboardedParties, defaultGroupId, notary))
+        mockNetwork.runNetwork()
+        future.getOrThrow()
     }
 
     private fun addMemberToInitialGroup(initiator: StartedMockNode, networkId: String, membership: MembershipState, notary: Party?) {
