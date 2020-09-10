@@ -306,7 +306,6 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
 
         assertEquals(2, authorisedMemberService.getAllMemberships(networkId.toString()).size)
         assertEquals(listOf(authorisedMember.info.legalIdentities.get(0), regularMember.info.legalIdentities.get(0)),
-                listOf(authorisedMemberService.getAllMemberships(networkId.toString()).get(0).state.data.identity.cordaIdentity,
-                        authorisedMemberService.getAllMemberships(networkId.toString()).get(1).state.data.identity.cordaIdentity))
+                authorisedMemberService.getAllMemberships(networkId.toString()).map{ it.state.data.identity.cordaIdentity })
     }
 }
