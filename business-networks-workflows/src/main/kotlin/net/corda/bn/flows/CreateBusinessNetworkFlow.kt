@@ -152,7 +152,7 @@ class CreateBusinessNetworkFlow(
     @Suspendable
     override fun call(): SignedTransaction {
         auditLogger.info("$ourIdentity started creation of Business Network with $networkId network ID containing initial Business Network Group with " +
-                "$groupId group ID and $groupName as group name")
+                "$groupId group ID and $groupName group name")
 
         val bnService = serviceHub.cordaService(BNService::class.java)
         // first issue membership with ACTIVE status
@@ -163,7 +163,7 @@ class CreateBusinessNetworkFlow(
 
             // in the end create initial business network group
             createBusinessNetworkGroup(bnService)
-            auditLogger.info("$ourIdentity successfully created initial Business Network Group with $groupId group ID and $groupName as group name")
+            auditLogger.info("$ourIdentity successfully created initial Business Network Group with $groupId group ID and $groupName group name")
         }
     }
 }

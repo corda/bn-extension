@@ -34,7 +34,7 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
 
     @Suspendable
     override fun call(): SignedTransaction {
-        auditLogger.info("$ourIdentity started roles modification of a member with $membershipId membership ID to a new $roles value")
+        auditLogger.info("$ourIdentity started modifying roles for membership with $membershipId membership ID to a new $roles value")
 
         val bnService = serviceHub.cordaService(BNService::class.java)
         val membership = bnService.getMembership(membershipId)
@@ -68,7 +68,7 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
         val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
-        auditLogger.info("$ourIdentity successfully modified roles of a member with $membershipId from ${membership.state.data.roles} to $roles")
+        auditLogger.info("$ourIdentity successfully modified roles for membership with $membershipId membership ID from ${membership.state.data.roles} to $roles")
 
         return finalisedTransaction
     }

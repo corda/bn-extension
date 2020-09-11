@@ -148,7 +148,7 @@ class ModifyGroupInternalFlow(
      * Validates proposed participants modification and creates output [GroupState] if the validation is successful.
      *
      * @param networkId ID of the Business Network containing modified group.
-     * @param inputGroup State and ref of the modified group.
+     * @param inputGroup [StateAndRef] of the modified group.
      * @param participantsIdentities Identities of all new participants of the modified group.
      * @param bnService Service used to query vault for groups and memberships.
      *
