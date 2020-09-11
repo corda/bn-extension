@@ -71,10 +71,6 @@ class BNOAccessControlReportFlow(
     override fun call(): AccessControlReport {
         val bnService = serviceHub.cordaService(BNService::class.java)
 
-        if(path == null || fileName == null) {
-            throw InvalidFilePathOrNameException("File path and/or name cannot be null")
-        }
-
         authorise(networkId, bnService) { membership -> membership.roles.any { it is BNORole } }
 
         // list all members in the network with their membership status and roles
@@ -92,7 +88,9 @@ class BNOAccessControlReportFlow(
         )
 
         return AccessControlReport(allMembersWithGroups, groupInfos).also {
-            writeToFile(it)
+            if(path != null && fileName != null) {
+                writeToFile(it)
+            }
         }
     }
 

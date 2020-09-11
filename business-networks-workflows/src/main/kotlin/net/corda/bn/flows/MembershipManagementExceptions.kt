@@ -64,8 +64,3 @@ class IllegalFlowArgumentException(message: String) : FlowException(message)
  * Exception thrown by any [MembershipManagementFlow] whenever group ends up in illegal state.
  */
 class IllegalBusinessNetworkGroupStateException(message: String) : FlowException(message)
-
-/**
- * Exception thrown by [BNOAccessControlReportFlow] whenever the file name and/or path is defined as null.
- */
-class InvalidFilePathOrNameException(message: String) : FlowException(message)
