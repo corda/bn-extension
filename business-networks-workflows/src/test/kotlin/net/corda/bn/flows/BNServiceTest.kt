@@ -16,12 +16,7 @@ import kotlin.test.assertTrue
 
 class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1, numberOfRegularMembers = 1) {
 
-    private fun BNService.getAllMemberships(networkId: String) = getAllMembershipsWithStatus(
-            networkId,
-            MembershipStatus.PENDING, MembershipStatus.ACTIVE, MembershipStatus.SUSPENDED
-    ).map {
-        it.state.data.linearId
-    }
+    private fun BNService.getLinearIdsForAllMemberships(networkId: String) = getAllMemberships(networkId).map { it.state.data.linearId }
 
     @Test(timeout = 300_000)
     fun `business network exists method should work`() {
@@ -117,29 +112,29 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
 
         val invalidNetworkId = "invalid-network-id"
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
-            assertFailsWith<IllegalStateException> { service.getAllMemberships(invalidNetworkId) }
+            assertFailsWith<IllegalStateException> { service.getLinearIdsForAllMemberships(invalidNetworkId) }
         }
 
         val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
-        assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getAllMemberships(authorisedMembership.networkId).toSet())
-        assertFailsWith<IllegalStateException> { regularMemberService.getAllMemberships(authorisedMembership.networkId) }
+        assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getLinearIdsForAllMemberships(authorisedMembership.networkId).toSet())
+        assertFailsWith<IllegalStateException> { regularMemberService.getLinearIdsForAllMemberships(authorisedMembership.networkId) }
 
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, authorisedMembership.networkId).tx.outputStates.single() as MembershipState
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
-            assertEquals(setOf(authorisedMembership.linearId, regularMembership.linearId), service.getAllMemberships(authorisedMembership.networkId).toSet())
+            assertEquals(setOf(authorisedMembership.linearId, regularMembership.linearId), service.getLinearIdsForAllMemberships(authorisedMembership.networkId).toSet())
         }
 
         val suspendedMembership = runSuspendMembershipFlow(authorisedMember, regularMembership.linearId).tx.outputStates.single() as MembershipState
         listOf(authorisedMemberService, regularMemberService).forEach { service ->
-            assertEquals(setOf(authorisedMembership.linearId, suspendedMembership.linearId), service.getAllMemberships(authorisedMembership.networkId).toSet())
+            assertEquals(setOf(authorisedMembership.linearId, suspendedMembership.linearId), service.getLinearIdsForAllMemberships(authorisedMembership.networkId).toSet())
             assertEquals(setOf(authorisedMembership.linearId), service.getAllMembershipsWithStatus(authorisedMembership.networkId, MembershipStatus.ACTIVE).map { it.state.data.linearId }.toSet())
             assertEquals(setOf(suspendedMembership.linearId), service.getAllMembershipsWithStatus(authorisedMembership.networkId, MembershipStatus.SUSPENDED).map { it.state.data.linearId }.toSet())
             assertTrue(service.getAllMembershipsWithStatus(authorisedMembership.networkId, MembershipStatus.PENDING).isEmpty())
         }
 
         runRevokeMembershipFlow(authorisedMember, suspendedMembership.linearId)
-        assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getAllMemberships(authorisedMembership.networkId).toSet())
-        assertFailsWith<IllegalStateException> { regularMemberService.getAllMemberships(authorisedMembership.networkId) }
+        assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getLinearIdsForAllMemberships(authorisedMembership.networkId).toSet())
+        assertFailsWith<IllegalStateException> { regularMemberService.getLinearIdsForAllMemberships(authorisedMembership.networkId) }
     }
 
     @Test(timeout = 300_000)
@@ -291,5 +286,26 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         runRevokeMembershipFlow(authorisedMember, membership.linearId)
         assertTrue(authorisedMemberService.getAllBusinessNetworkGroups(networkId).isNotEmpty())
         assertFailsWith<IllegalStateException> { regularMemberService.getAllBusinessNetworkGroups(networkId) }
+    }
+
+    @Test(timeout = 300_000)
+    fun `get all memberships method should work`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+        val networkId = UniqueIdentifier()
+
+        runCreateBusinessNetworkFlow(authorisedMember, networkId = networkId)
+
+        val authorisedMemberService = authorisedMember.services.cordaService(BNService::class.java)
+
+        assertEquals(1, authorisedMemberService.getAllMemberships(networkId.toString()).size)
+        assertEquals(authorisedMember.info.legalIdentities.get(0),
+                authorisedMemberService.getAllMemberships(networkId.toString()).single().state.data.identity.cordaIdentity)
+
+        runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId.toString())
+
+        assertEquals(2, authorisedMemberService.getAllMemberships(networkId.toString()).size)
+        assertEquals(listOf(authorisedMember.info.legalIdentities.get(0), regularMember.info.legalIdentities.get(0)),
+                authorisedMemberService.getAllMemberships(networkId.toString()).map{ it.state.data.identity.cordaIdentity })
     }
 }
