@@ -32,6 +32,9 @@ class ModifyBusinessIdentityFlow(
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started Business Identity modification of a member with $membershipId membership ID to a new " +
+                "Business Identity with $businessIdentity value")
+
         val bnService = serviceHub.cordaService(BNService::class.java)
         val membership = bnService.getMembership(membershipId)
                 ?: throw MembershipNotFoundException("Membership state with $membershipId linear ID doesn't exist")
@@ -64,7 +67,12 @@ class ModifyBusinessIdentityFlow(
 
         // collect signatures and finalise transaction
         val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
-        return collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+        val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+
+        auditLogger.info("$ourIdentity successfully modified Business Identity of a member with $membership membership ID from " +
+                "${membership.state.data.identity.businessIdentity} to $businessIdentity")
+
+        return finalisedTransaction
     }
 }
 

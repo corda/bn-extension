@@ -39,6 +39,8 @@ class OnboardMembershipFlow(
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started onboarding $onboardedParty to a Business Network with $networkId")
+
         // check whether party is authorised to initiate flow
         val bnService = serviceHub.cordaService(BNService::class.java)
         authorise(networkId, bnService) { it.canActivateMembership() }
@@ -73,7 +75,11 @@ class OnboardMembershipFlow(
             builder.verify(serviceHub)
 
             val observerSessions = (observers + onboardedParty).map { initiateFlow(it) }
-            return collectSignaturesAndFinaliseTransaction(builder, observerSessions, listOf(ourIdentity, onboardedParty))
+            val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, listOf(ourIdentity, onboardedParty))
+
+            auditLogger.info("$ourIdentity successfully onboarded $onboardedParty to a Business Network with $networkId")
+
+            return finalisedTransaction
         } finally {
             // deleting previously created lock since all of the changes are persisted on ledger
             bnService.lockStorage.deleteLock(BNRequestType.PENDING_MEMBERSHIP, onboardedParty.toString()) {

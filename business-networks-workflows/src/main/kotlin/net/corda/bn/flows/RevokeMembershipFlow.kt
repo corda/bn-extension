@@ -26,6 +26,8 @@ class RevokeMembershipFlow(private val membershipId: UniqueIdentifier, private v
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started revocation of member with $membershipId membership ID")
+
         val bnService = serviceHub.cordaService(BNService::class.java)
         val membership = bnService.getMembership(membershipId)
                 ?: throw MembershipNotFoundException("Membership state with $membershipId linear ID doesn't exist")
@@ -61,7 +63,11 @@ class RevokeMembershipFlow(private val membershipId: UniqueIdentifier, private v
 
         // collect signatures and finalise transaction
         val observerSessions = (membership.state.data.participants - ourIdentity).map { initiateFlow(it) }
-        return collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+        val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+
+        auditLogger.info("$ourIdentity successfully revoked member with $membershipId membership ID")
+
+        return finalisedTransaction
     }
 }
 

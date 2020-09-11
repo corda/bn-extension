@@ -18,12 +18,17 @@ import net.corda.core.node.StatesToRecord
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.lang.IllegalStateException
 
 /**
  * This abstract class is extended by any flow which will use common membership management helper methods.
  */
 abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
+
+    /** Logger used to perform audit logging over Business Network management operations. **/
+    protected val auditLogger: Logger = LoggerFactory.getLogger("bn.audit")
 
     /**
      * Performs authorisation checks of the flow initiator using provided authorisation methods.
@@ -95,7 +100,9 @@ abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
                     stx.toLedgerTransaction(serviceHub, false).verify()
                 }
             }
-            subFlow(signResponder)
+            subFlow(signResponder).also { stx ->
+                auditLogger.info("$ourIdentity signed transaction ${stx.tx} built by ${session.counterparty}")
+            }
         } else null
 
         subFlow(ReceiveFinalityFlow(session, stx?.id, StatesToRecord.ALL_VISIBLE))

@@ -9,7 +9,6 @@ import net.corda.bn.states.MembershipStatus
 import net.corda.core.flows.CollectSignaturesFlow
 import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowException
-import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.FlowSession
 import net.corda.core.flows.InitiatedBy
 import net.corda.core.flows.InitiatingFlow
@@ -44,10 +43,12 @@ class RequestMembershipFlow(
         private val networkId: String,
         private val businessIdentity: BNIdentity? = null,
         private val notary: Party? = null
-) : FlowLogic<SignedTransaction>() {
+) : MembershipManagementFlow<SignedTransaction>() {
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started submission of membership request to $authorisedParty in a Business Network with $networkId network ID")
+
         // check whether the initiator is already member of given Business Network
         val bnService = serviceHub.cordaService(BNService::class.java)
         if (bnService.isBusinessNetworkMember(networkId, ourIdentity)) {
@@ -74,10 +75,16 @@ class RequestMembershipFlow(
                 stx.toLedgerTransaction(serviceHub, false).verify()
             }
         }
-        val stx = subFlow(signResponder)
+        val stx = subFlow(signResponder).also {
+            auditLogger.info("$ourIdentity signed transaction ${it.tx} built by $authorisedParty")
+        }
 
         // receive finality flow
-        return subFlow(ReceiveFinalityFlow(authorisedPartySession, stx.id))
+        val finalisedTransaction = subFlow(ReceiveFinalityFlow(authorisedPartySession, stx.id))
+
+        auditLogger.info("$ourIdentity successfully submitted membership request in a Business Network with $networkId network ID")
+
+        return finalisedTransaction
     }
 }
 
@@ -140,10 +147,12 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
 }
 
 @InitiatedBy(RequestMembershipFlowResponder::class)
-class RequestMembershipObserverFlow(private val session: FlowSession) : FlowLogic<Unit>() {
+class RequestMembershipObserverFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
 
     @Suspendable
     override fun call() {
-        subFlow(ReceiveFinalityFlow(session))
+        subFlow(ReceiveFinalityFlow(session)).also { stx ->
+            auditLogger.info("$ourIdentity received finalised transaction ${stx.tx} built by ${session.counterparty}")
+        }
     }
 }

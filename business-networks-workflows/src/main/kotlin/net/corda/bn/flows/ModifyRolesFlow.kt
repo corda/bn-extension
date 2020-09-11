@@ -34,6 +34,8 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started modifying roles for membership with $membershipId membership ID to a new $roles value")
+
         val bnService = serviceHub.cordaService(BNService::class.java)
         val membership = bnService.getMembership(membershipId)
                 ?: throw MembershipNotFoundException("Membership state with $membershipId linear ID doesn't exist")
@@ -64,7 +66,11 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
 
         // collect signatures and finalise transactions
         val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
-        return collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+        val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+
+        auditLogger.info("$ourIdentity successfully modified roles for membership with $membershipId membership ID from ${membership.state.data.roles} to $roles")
+
+        return finalisedTransaction
     }
 }
 

@@ -30,6 +30,9 @@ class ModifyParticipantsFlow(
 
     @Suspendable
     override fun call() {
+        auditLogger.info("$ourIdentity started modifying list of participants for membership with ${membership.state.data.linearId} membership ID " +
+                "to be $participants")
+
         val requiredSigners = signers.map { it.owningKey }
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membership)
@@ -40,6 +43,9 @@ class ModifyParticipantsFlow(
         val observers = membership.state.data.participants.toSet() + participants - ourIdentity
         val observerSessions = observers.map { initiateFlow(it) }
         collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+
+        auditLogger.info("$ourIdentity successfully modified list of participants for membership with ${membership.state.data.linearId} membership ID " +
+                "from ${membership.state.data.participants} to $participants")
     }
 }
 

@@ -30,6 +30,8 @@ class SuspendMembershipFlow(private val membershipId: UniqueIdentifier, private 
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started suspension of member with $membershipId membership ID")
+
         val bnService = serviceHub.cordaService(BNService::class.java)
         val membership = bnService.getMembership(membershipId)
                 ?: throw MembershipNotFoundException("Membership state with $membershipId linear ID doesn't exist")
@@ -53,7 +55,11 @@ class SuspendMembershipFlow(private val membershipId: UniqueIdentifier, private 
 
         // collect signatures and finalise transaction
         val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
-        return collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+        val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
+
+        auditLogger.info("$ourIdentity successfully suspended member with $membershipId membership ID")
+
+        return finalisedTransaction
     }
 }
 

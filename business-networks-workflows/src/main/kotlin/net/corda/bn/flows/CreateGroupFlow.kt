@@ -43,6 +43,9 @@ class CreateGroupFlow(
 
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started creation of Business Network Group with $groupId group ID, $groupName group name with " +
+                "$additionalParticipants participants in Business Network with $networkId network ID")
+
         // check whether party is authorised to initiate flow
         val bnService = serviceHub.cordaService(BNService::class.java)
         val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
@@ -94,6 +97,9 @@ class CreateGroupFlow(
 
             // sync memberships' participants according to new participants of the groups member is part of
             syncMembershipsParticipants(networkId, (additionalParticipantsMemberships + ourMembership).toList(), signers, bnService, notary)
+
+            auditLogger.info("$ourIdentity successfully created Business Network Group with $groupId group ID, $groupName group name with " +
+                    "$additionalParticipants participants in Business Network with $networkId network ID")
 
             return finalisedTransaction
         } finally {

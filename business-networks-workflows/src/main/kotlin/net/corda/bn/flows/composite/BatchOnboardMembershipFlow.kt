@@ -3,13 +3,13 @@ package net.corda.bn.flows.composite
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.flows.BNService
 import net.corda.bn.flows.BusinessNetworkGroupNotFoundException
+import net.corda.bn.flows.MembershipManagementFlow
 import net.corda.bn.flows.MembershipNotFoundException
 import net.corda.bn.flows.ModifyGroupFlow
 import net.corda.bn.flows.OnboardMembershipFlow
 import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
-import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
@@ -43,11 +43,14 @@ class BatchOnboardMembershipFlow(
         private val onboardedParties: Set<OnboardingInfo>,
         private val defaultGroupId: UniqueIdentifier,
         private val notary: Party? = null
-) : FlowLogic<Unit>() {
+) : MembershipManagementFlow<Unit>() {
 
     @Suppress("TooGenericExceptionCaught")
     @Suspendable
     override fun call() {
+        auditLogger.info("$ourIdentity started batch onboarding of $onboardedParties parties to a Business Network with $networkId " +
+                "network ID and $defaultGroupId default placement group")
+
         val groups = mutableMapOf<UniqueIdentifier, MutableList<UniqueIdentifier>>()
         onboardedParties.forEach { (party, businessIdentity, groupId) ->
             try {
@@ -56,6 +59,7 @@ class BatchOnboardMembershipFlow(
                     oldValue.apply { add(membership.linearId) }
                 }
 
+                auditLogger.info("$ourIdentity successfully onboarded $party to Business Network with $networkId ID")
                 logger.info("Successfully onboarded $party to Business Network with $networkId ID")
             } catch (e: Exception) {
                 logger.error("Failed to onboard $party to Business Network with $networkId ID due to $e")
@@ -73,6 +77,7 @@ class BatchOnboardMembershipFlow(
 
                 subFlow(ModifyGroupFlow(groupId, null, oldParticipants.toSet() + participants, notary))
 
+                auditLogger.info("$ourIdentity successfully added onboarded members to group with $groupId linear ID")
                 logger.info("Successfully added onboarded members to group with $groupId linear ID")
             } catch (e: Exception) {
                 logger.error("Failed to add onboarded members to group with $groupId linear ID")
