@@ -18,6 +18,8 @@ import java.time.Instant
  * @property issuer The [Party] issuer of this state.
  * @property issued Timestamp when the state has been issued.
  * @property modified Timestamp when the state has been modified last time.
+ * @property participants List of all members that are part of the group. Also preserves
+ * [net.corda.core.contracts.ContractState.participants] definition.
  */
 @BelongsToContract(GroupContract::class)
 data class GroupState(
