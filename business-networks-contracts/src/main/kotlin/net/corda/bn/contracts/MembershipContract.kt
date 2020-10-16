@@ -260,6 +260,12 @@ open class MembershipContract : Contract {
             val memberIsSigner = inputMembership.identity.cordaIdentity.owningKey in requiredSigners
             "Input membership owner should be required signer of membership business identity modification transaction if it initiated it" using (!selfModification || memberIsSigner)
             "Input membership owner shouldn't be required signer of membership business identity modification transaction if it didn't initiate it" using (selfModification || !memberIsSigner)
+            // Checks to prevent self destructive behaviour such as removing management privileges
+            if (selfModification) {
+                val oldPrivileges = inputMembership.roles.map { it.permissions }.flatten().toSet()
+                val newPrivileges = outputMembership.roles.map { it.permissions }.flatten().toSet()
+                "Member cannot remove any of its own privileges" using (newPrivileges.containsAll(oldPrivileges))
+            }
         }
     }
 

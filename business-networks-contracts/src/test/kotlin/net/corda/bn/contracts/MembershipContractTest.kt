@@ -1,7 +1,11 @@
 package net.corda.bn.contracts
 
+import com.google.common.collect.Sets
+import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.BNORole
+import net.corda.bn.states.BNPermission
+import net.corda.bn.states.BNRole
 import net.corda.bn.states.MembershipIdentity
 import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
@@ -44,6 +48,9 @@ class MembershipContractTest {
             participants = listOf(memberIdentity, bnoIdentity),
             issuer = bnoIdentity
     )
+
+    private val INSUFFICIENT_ROLE = BNRole("Robin", setOf<BNPermission>(AdminPermission.CAN_MODIFY_ROLE,
+                                                                              AdminPermission.CAN_ACTIVATE_MEMBERSHIP))
 
     @Test(timeout = 300_000)
     fun `test common contract verification`() {
@@ -377,6 +384,14 @@ class MembershipContractTest {
                 command(listOf(bnoIdentity.owningKey, memberIdentity.owningKey), MembershipContract.Commands.ModifyRoles(listOf(bnoIdentity.owningKey, memberIdentity.owningKey), bnoIdentity))
                 this `fails with` "Input membership owner shouldn't be required signer of membership business identity modification transaction if it didn't initiate it"
             }
+
+            transaction {
+                input(MembershipContract.CONTRACT_NAME, input.copy(identity = MembershipIdentity(bnoIdentity), roles = setOf(BNORole())))
+                output(MembershipContract.CONTRACT_NAME, input.copy(identity = MembershipIdentity(bnoIdentity), roles = setOf(INSUFFICIENT_ROLE)))
+                command(listOf(bnoIdentity.owningKey), MembershipContract.Commands.ModifyRoles(listOf(bnoIdentity.owningKey), bnoIdentity))
+                this `fails with` "Member cannot remove any of its own privileges"
+            }
+
             transaction {
                 input(MembershipContract.CONTRACT_NAME, input)
                 output(MembershipContract.CONTRACT_NAME, input.copy(roles = setOf(BNORole())))
@@ -384,6 +399,13 @@ class MembershipContractTest {
                 verifies()
             }
         }
+    }
+
+    @Test
+    fun test(){
+        val x = setOf(1, 2, 3, 4, 5)
+        val y = setOf(4, 5, 6, 1)
+        println(Sets.difference(x, y))
     }
 
     @Test(timeout = 300_000)

@@ -53,6 +53,16 @@ class SuspendMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
     }
 
     @Test(timeout = 300_000)
+    fun `suspend membership flow should fail if authorised member tries to suspend itself`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+
+        assertFailsWith<IllegalFlowArgumentException> { runSuspendMembershipFlow(authorisedMember, authorisedMembership.linearId, authorisedMember.identity()) }
+    }
+
+    @Test(timeout = 300_000)
     fun `suspend membership flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()

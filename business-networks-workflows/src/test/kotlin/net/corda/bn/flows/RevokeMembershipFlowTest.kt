@@ -51,6 +51,16 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
     }
 
     @Test(timeout = 300_000)
+    fun `revoke membership flow should fail if authorised member tries to revoke itself`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+
+        assertFailsWith<IllegalFlowArgumentException> { runRevokeMembershipFlow(authorisedMember, authorisedMembership.linearId, authorisedMember.identity()) }
+    }
+
+    @Test(timeout = 300_000)
     fun `revoke membership flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()

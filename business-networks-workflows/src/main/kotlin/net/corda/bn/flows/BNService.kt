@@ -2,6 +2,7 @@ package net.corda.bn.flows
 
 import net.corda.bn.schemas.GroupStateSchemaV1
 import net.corda.bn.schemas.MembershipStateSchemaV1
+import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
@@ -281,6 +282,28 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         return serviceHub.vaultService.queryBy<GroupState>(criteria).states.filter {
             ourIdentity in it.state.data.participants
         }
+    }
+
+    /**
+     * Checks if a set of permissions can be removed from the network (by changing roles of a member, suspending or revoking members).
+     *
+     * @param networkId ID of the Business Network.
+     *
+     * @param permissions Set of administrative permissions which will be removed from the network as a consequence of one of the following operations:
+     * suspension, revocation, role change
+     *
+     * @return [true] if each permission in the provided set occurs on more than one member in the network, [false] otherwise.
+     */
+    fun safeToRemovePermissions(networkId: String, permissions: Set<AdminPermission>): Boolean {
+        val existingPermissions = getAllMemberships(networkId).map { membership ->
+            membership.state.data.roles.map { it.permissions }.flatten()
+        }.flatten().filterIsInstance<AdminPermission>()
+
+        permissions.forEach { permission ->
+            if (existingPermissions.count { it ==  permission } <= 1)
+                return false
+        }
+        return true
     }
 
     /** Instantiates custom vault query criteria for finding membership with given [networkId]. **/

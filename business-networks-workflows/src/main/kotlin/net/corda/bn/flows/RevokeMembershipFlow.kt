@@ -2,6 +2,7 @@ package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.contracts.MembershipContract
+import net.corda.bn.states.AdminPermission
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.FlowException
 import net.corda.core.flows.FlowSession
@@ -35,6 +36,18 @@ class RevokeMembershipFlow(private val membershipId: UniqueIdentifier, private v
         // check whether party is authorised to initiate flow
         val networkId = membership.state.data.networkId
         authorise(networkId, bnService) { it.canRevokeMembership() }
+
+        // ensure we're not suspending ourselves
+        if (ourIdentity == membership.state.data.identity.cordaIdentity) {
+            throw IllegalFlowArgumentException("Member cannot revoke itself")
+        }
+
+
+        // check if the result of this flow will leave the network without sufficient permissions across its authorised members
+        val removedPermissions = membership.state.data.roles.map { it.permissions }.flatten().filterIsInstance<AdminPermission>().toSet()
+        if (!bnService.safeToRemovePermissions(networkId, removedPermissions)) {
+            throw InvalidBusinessNetworkStateException("This flow attempts to remove remaining $removedPermissions from the network")
+        }
 
         // fetch signers
         val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
