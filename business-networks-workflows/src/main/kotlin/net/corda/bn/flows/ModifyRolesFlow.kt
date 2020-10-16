@@ -1,7 +1,6 @@
 package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
-import com.google.common.collect.Sets
 import net.corda.bn.contracts.MembershipContract
 import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.BNORole
