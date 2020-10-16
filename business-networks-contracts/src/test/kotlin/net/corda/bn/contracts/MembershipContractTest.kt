@@ -401,13 +401,6 @@ class MembershipContractTest {
         }
     }
 
-    @Test
-    fun test(){
-        val x = setOf(1, 2, 3, 4, 5)
-        val y = setOf(4, 5, 6, 1)
-        println(Sets.difference(x, y))
-    }
-
     @Test(timeout = 300_000)
     fun `test modify business identity command contract verification`() {
         ledgerServices.ledger {
