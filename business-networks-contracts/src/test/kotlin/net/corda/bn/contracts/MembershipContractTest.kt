@@ -1,6 +1,5 @@
 package net.corda.bn.contracts
 
-import com.google.common.collect.Sets
 import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.BNORole
