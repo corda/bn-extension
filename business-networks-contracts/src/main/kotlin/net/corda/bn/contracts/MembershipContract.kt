@@ -1,5 +1,6 @@
 package net.corda.bn.contracts
 
+import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.CommandData
 import net.corda.core.contracts.CommandWithParties
@@ -258,13 +259,13 @@ open class MembershipContract : Contract {
         (command.value as Commands.ModifyRoles).apply {
             val selfModification = initiator == inputMembership.identity.cordaIdentity
             val memberIsSigner = inputMembership.identity.cordaIdentity.owningKey in requiredSigners
-            "Input membership owner should be required signer of membership business identity modification transaction if it initiated it" using (!selfModification || memberIsSigner)
-            "Input membership owner shouldn't be required signer of membership business identity modification transaction if it didn't initiate it" using (selfModification || !memberIsSigner)
+            "Input membership owner should be required signer of membership roles modification transaction if it initiated it" using (!selfModification || memberIsSigner)
+            "Input membership owner shouldn't be required signer of membership roles modification transaction if it didn't initiate it" using (selfModification || !memberIsSigner)
             // Checks to prevent self destructive behaviour such as removing management privileges
             if (selfModification) {
-                val oldPrivileges = inputMembership.roles.map { it.permissions }.flatten().toSet()
-                val newPrivileges = outputMembership.roles.map { it.permissions }.flatten().toSet()
-                "Member cannot remove any of its own privileges" using (newPrivileges.containsAll(oldPrivileges))
+                val oldPrivileges = inputMembership.permissions().filterIsInstance<AdminPermission>()
+                val newPrivileges = outputMembership.permissions().filterIsInstance<AdminPermission>()
+                "Member cannot remove any of its own administrative privileges" using (newPrivileges.containsAll(oldPrivileges))
             }
         }
     }

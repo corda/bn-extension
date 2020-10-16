@@ -41,11 +41,6 @@ class SuspendMembershipFlow(private val membershipId: UniqueIdentifier, private 
         val networkId = membership.state.data.networkId
         authorise(networkId, bnService) { it.canSuspendMembership() }
 
-        // ensure we're not suspending ourselves
-        if (ourIdentity == membership.state.data.identity.cordaIdentity) {
-            throw IllegalFlowArgumentException("Member cannot suspend itself")
-        }
-
         // check if the result of this flow will leave the network without sufficient permissions across its authorised members
         val removedPermissions = membership.state.data.roles.map { it.permissions }.flatten().filterIsInstance<AdminPermission>().toSet()
         if (!bnService.safeToRemovePermissions(networkId, removedPermissions)) {

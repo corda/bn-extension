@@ -294,13 +294,11 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
      *
      * @return [true] if each permission in the provided set occurs on more than one member in the network, [false] otherwise.
      */
-    fun safeToRemovePermissions(networkId: String, permissions: Set<AdminPermission>): Boolean {
-        val existingPermissions = getAllMemberships(networkId).map { membership ->
-            membership.state.data.roles.map { it.permissions }.flatten()
-        }.flatten().filterIsInstance<AdminPermission>()
+    internal fun safeToRemovePermissions(networkId: String, permissions: Set<AdminPermission>): Boolean {
+        val existingPermissions = getAllMemberships(networkId).flatMap { it.state.data.permissions() }.filterIsInstance<AdminPermission>()
 
         permissions.forEach { permission ->
-            if (existingPermissions.count { it ==  permission } <= 1)
+            if (existingPermissions.count { it == permission } <= 1)
                 return false
         }
         return true

@@ -49,7 +49,7 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
         // check if the result of this flow will leave the network without sufficient permissions across its authorised members
         val oldPermissions = membership.state.data.roles.map { it.permissions }.flatten().filterIsInstance<AdminPermission>().toSet()
         val newPermissions = roles.map { it.permissions }.flatten().filterIsInstance<AdminPermission>().toSet()
-        val removedPermissions = Sets.difference(oldPermissions, newPermissions)
+        val removedPermissions = oldPermissions - newPermissions
         if (!bnService.safeToRemovePermissions(networkId, removedPermissions)) {
             throw InvalidBusinessNetworkStateException("This flow attempts to remove remaining $removedPermissions from the network")
         }
