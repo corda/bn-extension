@@ -258,8 +258,8 @@ open class MembershipContract : Contract {
         (command.value as Commands.ModifyRoles).apply {
             val selfModification = initiator == inputMembership.identity.cordaIdentity
             val memberIsSigner = inputMembership.identity.cordaIdentity.owningKey in requiredSigners
-            "Input membership owner should be required signer of membership business identity modification transaction if it initiated it" using (!selfModification || memberIsSigner)
-            "Input membership owner shouldn't be required signer of membership business identity modification transaction if it didn't initiate it" using (selfModification || !memberIsSigner)
+            "Input membership owner should be required signer of membership roles modification transaction if it initiated it" using (!selfModification || memberIsSigner)
+            "Input membership owner shouldn't be required signer of membership roles modification transaction if it didn't initiate it" using (selfModification || !memberIsSigner)
         }
     }
 

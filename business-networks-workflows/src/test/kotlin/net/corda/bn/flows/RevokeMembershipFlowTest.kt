@@ -51,6 +51,15 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
     }
 
     @Test(timeout = 300_000)
+    fun `revoke membership flow should fail if it results in insufficient admin permissions in the network`() {
+        val authorisedMember = authorisedMembers.first()
+
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+
+        assertFailsWith<InvalidBusinessNetworkStateException> { runRevokeMembershipFlow(authorisedMember, authorisedMembership.linearId) }
+    }
+
+    @Test(timeout = 300_000)
     fun `revoke membership flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()

@@ -1,7 +1,9 @@
 package net.corda.bn.flows
 
 import net.corda.bn.contracts.MembershipContract
+import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.BNORole
+import net.corda.bn.states.BNRole
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
 import org.junit.Test
@@ -50,6 +52,27 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val membership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         assertFailsWith<IllegalArgumentException> { runModifyRolesFlow(authorisedMember, membership.linearId, setOf(BNORole()), authorisedMember.identity()) }
     }
+
+    @Test(timeout = 300_000)
+    fun `modify roles flow should fail if it results in a network with insufficient admin privileges`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val lesserBNORole = BNRole("AlmostBNO",
+                  setOf(AdminPermission.CAN_ACTIVATE_MEMBERSHIP,
+                        AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY,
+                        AdminPermission.CAN_MODIFY_GROUPS,
+                        AdminPermission.CAN_REVOKE_MEMBERSHIP,
+                        AdminPermission.CAN_SUSPEND_MEMBERSHIP))
+
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val networkId = authorisedMembership.networkId
+        val activatedMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+        runModifyRolesFlow(authorisedMember, activatedMembership.linearId, setOf(lesserBNORole))
+
+        assertFailsWith<InvalidBusinessNetworkStateException> { runModifyRolesFlow(authorisedMember, authorisedMembership.linearId, setOf(lesserBNORole)) }
+    }
+
 
     @Test(timeout = 300_000)
     fun `modify roles flow happy path`() {

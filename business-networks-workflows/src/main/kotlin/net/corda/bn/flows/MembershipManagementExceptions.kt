@@ -64,3 +64,8 @@ class IllegalFlowArgumentException(message: String) : FlowException(message)
  * Exception thrown by any [MembershipManagementFlow] whenever group ends up in illegal state.
  */
 class IllegalBusinessNetworkGroupStateException(message: String) : FlowException(message)
+
+/**
+ * Exception thrown by any [MembershipManagementFlow] whenever the network is left in an invalid state(i.e. no members with permission to revoke memberships)
+ */
+class InvalidBusinessNetworkStateException(message: String) : FlowException(message)

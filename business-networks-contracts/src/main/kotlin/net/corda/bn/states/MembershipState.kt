@@ -61,7 +61,7 @@ data class MembershipState(
      *
      * @return Set of all roles given to all [MembershipState.roles].
      */
-    private fun permissions() = roles.flatMap { it.permissions }.toSet()
+    fun permissions() = roles.flatMap { it.permissions }.toSet()
 
     /** Indicates whether membership is authorised to activate memberships. **/
     fun canActivateMembership() = AdminPermission.CAN_ACTIVATE_MEMBERSHIP in permissions()

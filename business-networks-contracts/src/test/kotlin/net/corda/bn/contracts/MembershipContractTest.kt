@@ -369,13 +369,13 @@ class MembershipContractTest {
                 input(MembershipContract.CONTRACT_NAME, input)
                 output(MembershipContract.CONTRACT_NAME, input.copy(roles = setOf(BNORole())))
                 command(listOf(bnoIdentity.owningKey), MembershipContract.Commands.ModifyRoles(listOf(bnoIdentity.owningKey), memberIdentity))
-                this `fails with` "Input membership owner should be required signer of membership business identity modification transaction if it initiated it"
+                this `fails with` "Input membership owner should be required signer of membership roles modification transaction if it initiated it"
             }
             transaction {
                 input(MembershipContract.CONTRACT_NAME, input)
                 output(MembershipContract.CONTRACT_NAME, input.copy(roles = setOf(BNORole())))
                 command(listOf(bnoIdentity.owningKey, memberIdentity.owningKey), MembershipContract.Commands.ModifyRoles(listOf(bnoIdentity.owningKey, memberIdentity.owningKey), bnoIdentity))
-                this `fails with` "Input membership owner shouldn't be required signer of membership business identity modification transaction if it didn't initiate it"
+                this `fails with` "Input membership owner shouldn't be required signer of membership roles modification transaction if it didn't initiate it"
             }
             transaction {
                 input(MembershipContract.CONTRACT_NAME, input)
