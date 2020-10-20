@@ -70,6 +70,8 @@ open class MembershipContract : Contract {
          */
         class ModifyRoles(requiredSigners: List<PublicKey>, val initiator: Party) : Commands(requiredSigners)
 
+        class ModifyCordaIdentity(requiredSigners: List<PublicKey>) : Commands(requiredSigners)
+
         /**
          * Command responsible for modification of [MembershipState.identity.businessIdentity].
          *
@@ -114,7 +116,6 @@ open class MembershipContract : Contract {
                 "Required signers should be subset of all output state's participants" using (participants.map { it.owningKey }.containsAll(command.value.requiredSigners))
             }
             if (inputState != null && outputState != null) {
-                "Input and output state should have same Corda identity" using (inputState.identity.cordaIdentity == outputState.identity.cordaIdentity)
                 "Input and output state should have same network IDs" using (inputState.networkId == outputState.networkId)
                 "Input and output state should have same issued timestamps" using (inputState.issued == outputState.issued)
                 "Membership state issuer cannot be changed" using (inputState.issuer == outputState.issuer)
@@ -131,6 +132,7 @@ open class MembershipContract : Contract {
             is Commands.Suspend -> verifySuspend(tx, command, inputState!!, outputState!!)
             is Commands.Revoke -> verifyRevoke(tx, command, inputState!!)
             is Commands.ModifyRoles -> verifyModifyRoles(tx, command, inputState!!, outputState!!)
+            is Commands.ModifyCordaIdentity -> verifyModifyCordaIdentity(tx, command, inputState!!, outputState!!)
             is Commands.ModifyBusinessIdentity -> verifyModifyBusinessIdentity(tx, command, inputState!!, outputState!!)
             is Commands.ModifyParticipants -> verifyModifyParticipants(tx, command, inputState!!, outputState!!)
             else -> throw IllegalArgumentException("Unsupported command ${command.value}")
@@ -175,6 +177,7 @@ open class MembershipContract : Contract {
         "Input state of membership activation transaction shouldn't be already active" using (!inputMembership.isActive())
         "Output state of membership activation transaction should be active" using (outputMembership.isActive())
         "Input and output state of membership activation transaction should have same roles set" using (inputMembership.roles == outputMembership.roles)
+        "Input and output state of membership activation transaction should have same Corda identity" using (inputMembership.identity.cordaIdentity == outputMembership.identity.cordaIdentity)
         "Input and output state of membership activation transaction should have same business identity" using (inputMembership.identity.businessIdentity == outputMembership.identity.businessIdentity)
         "Input and output state of membership activation transaction should have same participants" using (inputMembership.participants.toSet() == outputMembership.participants.toSet())
         "Input membership owner shouldn't be required signer of membership activation transaction" using (inputMembership.identity.cordaIdentity.owningKey !in command.value.requiredSigners)
@@ -213,6 +216,7 @@ open class MembershipContract : Contract {
         "Input state of membership suspension transaction shouldn't be already suspended" using (!inputMembership.isSuspended())
         "Output state of membership suspension transaction should be suspended" using (outputMembership.isSuspended())
         "Input and output state of membership suspension transaction should have same roles set" using (inputMembership.roles == outputMembership.roles)
+        "Input and output state of membership suspension transaction should have same Corda identity" using (inputMembership.identity.cordaIdentity == outputMembership.identity.cordaIdentity)
         "Input and output state of membership suspension transaction should have same business identity" using (inputMembership.identity.businessIdentity == outputMembership.identity.businessIdentity)
         "Input and output state of membership suspension transaction should have same participants" using (inputMembership.participants.toSet() == outputMembership.participants.toSet())
         "Input membership owner shouldn't be required signer of membership suspension transaction" using (inputMembership.identity.cordaIdentity.owningKey !in command.value.requiredSigners)
@@ -253,6 +257,7 @@ open class MembershipContract : Contract {
         "Input and output state of membership roles modification transaction should have same status" using (inputMembership.status == outputMembership.status)
         "Membership roles modification transaction can only be performed on active or suspended state" using (inputMembership.isActive() || inputMembership.isSuspended())
         "Input and output state of membership roles modification transaction should have different set of roles" using (inputMembership.roles != outputMembership.roles)
+        "Input and output state of membership roles modification transaction should have same Corda identity" using (inputMembership.identity.cordaIdentity == outputMembership.identity.cordaIdentity)
         "Input and output state of membership roles modification transaction should have same business identity" using (inputMembership.identity.businessIdentity == outputMembership.identity.businessIdentity)
         "Input and output state of membership roles modification transaction should have same participants" using (inputMembership.participants.toSet() == outputMembership.participants.toSet())
         (command.value as Commands.ModifyRoles).apply {
@@ -261,6 +266,21 @@ open class MembershipContract : Contract {
             "Input membership owner should be required signer of membership roles modification transaction if it initiated it" using (!selfModification || memberIsSigner)
             "Input membership owner shouldn't be required signer of membership roles modification transaction if it didn't initiate it" using (selfModification || !memberIsSigner)
         }
+    }
+
+    open fun verifyModifyCordaIdentity(
+            tx: LedgerTransaction,
+            command: CommandWithParties<Commands>,
+            inputMembership: MembershipState,
+            outputMembership: MembershipState
+    ) = requireThat {
+        "Input and output state of membership corda identity modification transaction should have same status" using (inputMembership.status == outputMembership.status)
+        "Membership business corda modification transaction can only be performed on active or suspended state" using (inputMembership.isActive() || inputMembership.isSuspended())
+        "Input and output state of membership corda identity modification transaction should have same roles" using (inputMembership.roles == outputMembership.roles)
+        "Input and output state of membership corda identity modification transaction should have different Corda identity owning key" using (inputMembership.identity.cordaIdentity.owningKey != outputMembership.identity.cordaIdentity.owningKey)
+        "Input and output state of membership corda identity modification transaction should have same Corda identity X500 name" using (inputMembership.identity.cordaIdentity.name == outputMembership.identity.cordaIdentity.name)
+        "Input and output state of membership corda identity modification transaction should have same business identity" using (inputMembership.identity.businessIdentity == outputMembership.identity.businessIdentity)
+        "Input and output state of membership corda identity modification transaction should have same participants" using (inputMembership.participants.toSet() == outputMembership.participants.toSet())
     }
 
     /**
@@ -281,6 +301,7 @@ open class MembershipContract : Contract {
         "Input and output state of membership business identity modification transaction should have same status" using (inputMembership.status == outputMembership.status)
         "Membership business identity modification transaction can only be performed on active or suspended state" using (inputMembership.isActive() || inputMembership.isSuspended())
         "Input and output state of membership business identity modification transaction should have same roles" using (inputMembership.roles == outputMembership.roles)
+        "Input and output state of membership business identity modification transaction should have same Corda identity" using (inputMembership.identity.cordaIdentity == outputMembership.identity.cordaIdentity)
         "Input and output state of membership business identity modification transaction should have different business identity" using (inputMembership.identity.businessIdentity != outputMembership.identity.businessIdentity)
         "Input and output state of membership business identity modification transaction should have same participants" using (inputMembership.participants.toSet() == outputMembership.participants.toSet())
         (command.value as Commands.ModifyBusinessIdentity).apply {
@@ -309,6 +330,7 @@ open class MembershipContract : Contract {
         "Input and output state of membership participants modification transaction should have same status" using (inputMembership.status == outputMembership.status)
         "Membership participants modification transaction can only be performed on active or suspended state" using (inputMembership.isActive() || inputMembership.isSuspended())
         "Input and output state of membership participants modification transaction should have same roles" using (inputMembership.roles == outputMembership.roles)
+        "Input and output state of membership participants modification transaction should have same Corda identity" using (inputMembership.identity.cordaIdentity == outputMembership.identity.cordaIdentity)
         "Input and output state of membership participants modification transaction should have same business identity" using (inputMembership.identity.businessIdentity == outputMembership.identity.businessIdentity)
     }
 }

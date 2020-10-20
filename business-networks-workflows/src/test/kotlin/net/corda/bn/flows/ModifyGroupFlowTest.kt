@@ -128,6 +128,25 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     }
 
     @Test(timeout = 300_000)
+    fun `modify group flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val networkId = authorisedMembership.networkId
+        val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val group = runCreateGroupFlow(authorisedMember, networkId, additionalParticipants = setOf(regularMembership.linearId)).tx.outputStates.single() as GroupState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        listOf(authorisedMembership, regularMembership).forEach { member ->
+            runUpdateCordaIdentityFlow(restartedAuthorisedMember, member.linearId)
+        }
+        runModifyGroupFlow(restartedAuthorisedMember, group.linearId, "default-group", setOf(authorisedMembership.linearId, regularMembership.linearId))
+    }
+
+    @Test(timeout = 300_000)
     fun `modify group flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()

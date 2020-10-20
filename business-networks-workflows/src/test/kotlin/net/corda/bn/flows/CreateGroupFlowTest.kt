@@ -104,6 +104,23 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     }
 
     @Test(timeout = 300_000)
+    fun `create group should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val networkId = authorisedMembership.networkId
+        val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        listOf(authorisedMembership, regularMembership).forEach { member ->
+            runUpdateCordaIdentityFlow(restartedAuthorisedMember, member.linearId)
+        }
+        runCreateGroupFlow(restartedAuthorisedMember, networkId, additionalParticipants = setOf(regularMembership.linearId))
+    }
+
+    @Test(timeout = 300_000)
     fun `create group flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()

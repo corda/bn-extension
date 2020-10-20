@@ -51,6 +51,25 @@ class ModifyBusinessIdentityFlowTest : MembershipManagementFlowTest(numberOfAuth
     }
 
     @Test(timeout = 300_000)
+    fun `modify business identity flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+            networkId to linearId
+        }
+        val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        listOf(authorisedMembershipId, regularMembership.linearId).forEach { membershipId ->
+            runUpdateCordaIdentityFlow(restartedAuthorisedMember, membershipId)
+        }
+        runModifyBusinessIdentityFlow(restartedAuthorisedMember, regularMembership.linearId, DummyIdentity("dummy-identity"))
+        runModifyBusinessIdentityFlow(restartedAuthorisedMember, authorisedMembershipId, DummyIdentity("dummy-identity"))
+    }
+
+    @Test(timeout = 300_000)
     fun `modify business identity flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()

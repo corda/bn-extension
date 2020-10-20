@@ -60,6 +60,24 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
     }
 
     @Test(timeout = 300_000)
+    fun `revoke membership flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+            networkId to linearId
+        }
+        val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        listOf(authorisedMembershipId, regularMembership.linearId).forEach { membershipId ->
+            runUpdateCordaIdentityFlow(restartedAuthorisedMember, membershipId)
+        }
+        runRevokeMembershipFlow(restartedAuthorisedMember, regularMembership.linearId)
+    }
+
+    @Test(timeout = 300_000)
     fun `revoke membership flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
