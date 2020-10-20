@@ -58,6 +58,22 @@ class DeleteGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     }
 
     @Test(timeout = 300_000)
+    fun `delete group flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val networkId = authorisedMembership.networkId
+        val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val group = runCreateGroupFlow(authorisedMember, networkId, additionalParticipants = setOf(regularMembership.linearId)).tx.outputStates.single() as GroupState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        runDeleteGroupFlow(restartedAuthorisedMember, group.linearId)
+    }
+
+    @Test(timeout = 300_000)
     fun `delete group flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()

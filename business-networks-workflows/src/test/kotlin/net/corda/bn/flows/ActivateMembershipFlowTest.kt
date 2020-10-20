@@ -53,6 +53,19 @@ class ActivateMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthoris
     }
 
     @Test(timeout = 300_000)
+    fun `activate membership flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val membership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        runActivateMembershipFlow(restartedAuthorisedMember, membership.linearId)
+    }
+
+    @Test(timeout = 300_000)
     fun `activate membership flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()

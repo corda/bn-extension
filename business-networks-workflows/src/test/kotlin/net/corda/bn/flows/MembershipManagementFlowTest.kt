@@ -12,16 +12,24 @@ import net.corda.bn.states.MembershipStatus
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
+import net.corda.core.internal.div
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
-import net.corda.testing.node.MockNetwork
-import net.corda.testing.node.MockNetworkParameters
-import net.corda.testing.node.MockNodeParameters
-import net.corda.testing.node.StartedMockNode
-import net.corda.testing.node.TestCordapp
+import net.corda.coretesting.internal.stubs.CertificateStoreStubs
+import net.corda.node.services.keys.KeyManagementServiceInternal
+import net.corda.nodeapi.internal.DEV_CA_KEY_STORE_PASS
+import net.corda.nodeapi.internal.crypto.X509Utilities
+import net.corda.nodeapi.internal.storeLegalIdentity
+import net.corda.testing.node.internal.InternalMockNetwork
+import net.corda.testing.node.internal.InternalMockNodeParameters
+import net.corda.testing.node.internal.TestCordappImpl
+import net.corda.testing.node.internal.TestStartedNode
+import net.corda.testing.node.internal.startFlow
 import org.junit.After
 import org.junit.Before
+import java.nio.file.Path
+import java.security.PublicKey
 import kotlin.test.assertNotNull
 
 abstract class MembershipManagementFlowTest(
@@ -29,16 +37,16 @@ abstract class MembershipManagementFlowTest(
         private val numberOfRegularMembers: Int
 ) {
 
-    protected lateinit var authorisedMembers: List<StartedMockNode>
-    protected lateinit var regularMembers: List<StartedMockNode>
-    private lateinit var mockNetwork: MockNetwork
+    protected lateinit var authorisedMembers: List<TestStartedNode>
+    protected lateinit var regularMembers: List<TestStartedNode>
+    private lateinit var mockNetwork: InternalMockNetwork
 
     @Before
     fun setUp() {
-        mockNetwork = MockNetwork(MockNetworkParameters(cordappsForAllNodes = listOf(
-                TestCordapp.findCordapp("net.corda.bn.contracts"),
-                TestCordapp.findCordapp("net.corda.bn.flows")
-        )))
+        mockNetwork = InternalMockNetwork(cordappsForAllNodes = listOf(
+                TestCordappImpl(scanPackage = "net.corda.bn.contracts", config = emptyMap()),
+                TestCordappImpl(scanPackage = "net.corda.bn.flows", config = emptyMap())
+        ))
 
         authorisedMembers = (0 until numberOfAuthorisedMembers).mapIndexed { idx, _ ->
             createNode(CordaX500Name.parse("O=BNO_$idx,L=New York,C=US"))
@@ -55,43 +63,43 @@ abstract class MembershipManagementFlowTest(
         mockNetwork.stopNodes()
     }
 
-    private fun createNode(name: CordaX500Name) = mockNetwork.createNode(MockNodeParameters(legalName = name))
+    private fun createNode(name: CordaX500Name) = mockNetwork.createNode(InternalMockNodeParameters(legalName = name))
 
     @Suppress("LongParameterList")
     protected fun runCreateBusinessNetworkFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             networkId: UniqueIdentifier = UniqueIdentifier(),
             businessIdentity: BNIdentity? = null,
             groupId: UniqueIdentifier = UniqueIdentifier(),
             groupName: String? = null,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(CreateBusinessNetworkFlow(networkId, businessIdentity, groupId, groupName, notary))
+        val future = initiator.services.startFlow(CreateBusinessNetworkFlow(networkId, businessIdentity, groupId, groupName, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     protected fun runRequestMembershipFlow(
-            initiator: StartedMockNode,
-            authorisedNode: StartedMockNode,
+            initiator: TestStartedNode,
+            authorisedNode: TestStartedNode,
             networkId: String,
             businessIdentity: BNIdentity? = null,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(RequestMembershipFlow(authorisedNode.identity(), networkId, businessIdentity, notary))
+        val future = initiator.services.startFlow(RequestMembershipFlow(authorisedNode.identity(), networkId, businessIdentity, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
-    protected fun runActivateMembershipFlow(initiator: StartedMockNode, membershipId: UniqueIdentifier, notary: Party? = null): SignedTransaction {
-        val future = initiator.startFlow(ActivateMembershipFlow(membershipId, notary))
+    protected fun runActivateMembershipFlow(initiator: TestStartedNode, membershipId: UniqueIdentifier, notary: Party? = null): SignedTransaction {
+        val future = initiator.services.startFlow(ActivateMembershipFlow(membershipId, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     protected fun runRequestAndActivateMembershipFlows(
-            initiator: StartedMockNode,
-            authorisedNode: StartedMockNode,
+            initiator: TestStartedNode,
+            authorisedNode: TestStartedNode,
             networkId: String,
             businessIdentity: BNIdentity? = null,
             notary: Party? = null
@@ -103,29 +111,29 @@ abstract class MembershipManagementFlowTest(
     }
 
     protected fun runOnboardMembershipFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             networkId: String,
             onboardedParty: Party,
             businessIdentity: BNIdentity? = null,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(OnboardMembershipFlow(networkId, onboardedParty, businessIdentity, notary))
+        val future = initiator.services.startFlow(OnboardMembershipFlow(networkId, onboardedParty, businessIdentity, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow().apply {
+        return future.resultFuture.getOrThrow().apply {
             val membership = tx.outputStates.single() as MembershipState
             addMemberToInitialGroup(initiator, networkId, membership, notary)
         }
     }
 
-    protected fun runSuspendMembershipFlow(initiator: StartedMockNode, membershipId: UniqueIdentifier, notary: Party? = null): SignedTransaction {
-        val future = initiator.startFlow(SuspendMembershipFlow(membershipId, notary))
+    protected fun runSuspendMembershipFlow(initiator: TestStartedNode, membershipId: UniqueIdentifier, notary: Party? = null): SignedTransaction {
+        val future = initiator.services.startFlow(SuspendMembershipFlow(membershipId, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     protected fun runRequestAndSuspendMembershipFlow(
-            initiator: StartedMockNode,
-            authorisedNode: StartedMockNode,
+            initiator: TestStartedNode,
+            authorisedNode: TestStartedNode,
             networkId: String,
             businessIdentity: BNIdentity? = null,
             notary: Party? = null
@@ -136,89 +144,89 @@ abstract class MembershipManagementFlowTest(
         }
     }
 
-    protected fun runRevokeMembershipFlow(initiator: StartedMockNode, membershipId: UniqueIdentifier, notary: Party? = null): SignedTransaction {
-        val future = initiator.startFlow(RevokeMembershipFlow(membershipId, notary))
+    protected fun runRevokeMembershipFlow(initiator: TestStartedNode, membershipId: UniqueIdentifier, notary: Party? = null): SignedTransaction {
+        val future = initiator.services.startFlow(RevokeMembershipFlow(membershipId, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
-    protected fun runModifyRolesFlow(initiator: StartedMockNode, membershipId: UniqueIdentifier, roles: Set<BNRole>, notary: Party? = null): SignedTransaction {
-        val future = initiator.startFlow(ModifyRolesFlow(membershipId, roles, notary))
+    protected fun runModifyRolesFlow(initiator: TestStartedNode, membershipId: UniqueIdentifier, roles: Set<BNRole>, notary: Party? = null): SignedTransaction {
+        val future = initiator.services.startFlow(ModifyRolesFlow(membershipId, roles, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
-    protected fun runModifyBusinessIdentityFlow(initiator: StartedMockNode, membershipId: UniqueIdentifier, businessIdentity: BNIdentity, notary: Party? = null): SignedTransaction {
-        val future = initiator.startFlow(ModifyBusinessIdentityFlow(membershipId, businessIdentity, notary))
+    protected fun runModifyBusinessIdentityFlow(initiator: TestStartedNode, membershipId: UniqueIdentifier, businessIdentity: BNIdentity, notary: Party? = null): SignedTransaction {
+        val future = initiator.services.startFlow(ModifyBusinessIdentityFlow(membershipId, businessIdentity, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     @Suppress("LongParameterList")
     protected fun runCreateGroupFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             networkId: String,
             groupId: UniqueIdentifier = UniqueIdentifier(),
             groupName: String? = null,
             additionalParticipants: Set<UniqueIdentifier> = emptySet(),
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(CreateGroupFlow(networkId, groupId, groupName, additionalParticipants, notary))
+        val future = initiator.services.startFlow(CreateGroupFlow(networkId, groupId, groupName, additionalParticipants, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     protected fun runModifyGroupFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             groupId: UniqueIdentifier,
             name: String? = null,
             participants: Set<UniqueIdentifier>? = null,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(ModifyGroupFlow(groupId, name, participants, notary))
+        val future = initiator.services.startFlow(ModifyGroupFlow(groupId, name, participants, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
-    protected fun runDeleteGroupFlow(initiator: StartedMockNode, groupId: UniqueIdentifier, notary: Party? = null): SignedTransaction {
-        val future = initiator.startFlow(DeleteGroupFlow(groupId, notary))
+    protected fun runDeleteGroupFlow(initiator: TestStartedNode, groupId: UniqueIdentifier, notary: Party? = null): SignedTransaction {
+        val future = initiator.services.startFlow(DeleteGroupFlow(groupId, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     protected fun runBatchActivateMembershipFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             memberships: Set<ActivationInfo>,
             defaultGroupId: UniqueIdentifier,
             notary: Party? = null
     ) {
-        val future = initiator.startFlow(BatchActivateMembershipFlow(memberships, defaultGroupId, notary))
+        val future = initiator.services.startFlow(BatchActivateMembershipFlow(memberships, defaultGroupId, notary))
         mockNetwork.runNetwork()
-        future.getOrThrow()
+        future.resultFuture.getOrThrow()
     }
 
     protected fun runBatchOnboardMembershipFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             networkId: String,
             onboardedParties: Set<OnboardingInfo>,
             defaultGroupId: UniqueIdentifier,
             notary: Party? = null
     ) {
-        val future = initiator.startFlow(BatchOnboardMembershipFlow(networkId, onboardedParties, defaultGroupId, notary))
+        val future = initiator.services.startFlow(BatchOnboardMembershipFlow(networkId, onboardedParties, defaultGroupId, notary))
         mockNetwork.runNetwork()
-        future.getOrThrow()
+        future.resultFuture.getOrThrow()
     }
 
     protected fun runBNOAccessControlReportFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             networkId: String
     ): AccessControlReport {
-        val future = initiator.startFlow(BNOAccessControlReportFlow(networkId))
+        val future = initiator.services.startFlow(BNOAccessControlReportFlow(networkId))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
-    private fun addMemberToInitialGroup(initiator: StartedMockNode, networkId: String, membership: MembershipState, notary: Party?) {
+    private fun addMemberToInitialGroup(initiator: TestStartedNode, networkId: String, membership: MembershipState, notary: Party?) {
         val bnService = initiator.services.cordaService(BNService::class.java)
         val group = bnService.getAllBusinessNetworkGroups(networkId).minBy { it.state.data.issued }?.state?.data
         assertNotNull(group)
@@ -232,7 +240,7 @@ abstract class MembershipManagementFlowTest(
         runModifyGroupFlow(initiator, group.linearId, participants = participants.toSet(), notary = notary)
     }
 
-    protected fun getAllMembershipsFromVault(node: StartedMockNode, networkId: String): List<MembershipState> {
+    protected fun getAllMembershipsFromVault(node: TestStartedNode, networkId: String): List<MembershipState> {
         val bnService = node.services.cordaService(BNService::class.java)
         return bnService.getAllMembershipsWithStatus(
                 networkId,
@@ -242,13 +250,31 @@ abstract class MembershipManagementFlowTest(
         }
     }
 
-    protected fun getAllGroupsFromVault(node: StartedMockNode, networkId: String): List<GroupState> {
+    protected fun getAllGroupsFromVault(node: TestStartedNode, networkId: String): List<GroupState> {
         val bnService = node.services.cordaService(BNService::class.java)
         return bnService.getAllBusinessNetworkGroups(networkId).map { it.state.data }
+    }
+
+    protected fun restartNodeWithRotateIdentityKey(node: TestStartedNode): TestStartedNode {
+        val oldIdentity = rotateIdentityKey(mockNetwork.baseDirectory(node) / "certificates")
+        val restartedNode = mockNetwork.restartNode(node)
+        (restartedNode.services.keyManagementService as KeyManagementServiceInternal).start(listOf(oldIdentity))
+        return restartedNode
+    }
+
+    private fun rotateIdentityKey(certificatesDirectory: Path): Pair<PublicKey, String> {
+        val oldIdentityAlias = "old-identity"
+        val certStore = CertificateStoreStubs.Signing.withCertificatesDirectory(certificatesDirectory).get()
+        certStore.update {
+            val oldKey = getPrivateKey(X509Utilities.NODE_IDENTITY_KEY_ALIAS, DEV_CA_KEY_STORE_PASS)
+            setPrivateKey(oldIdentityAlias, oldKey, getCertificateChain(X509Utilities.NODE_IDENTITY_KEY_ALIAS), DEV_CA_KEY_STORE_PASS)
+        }
+        certStore.storeLegalIdentity(X509Utilities.NODE_IDENTITY_KEY_ALIAS)
+        return certStore[oldIdentityAlias].publicKey to oldIdentityAlias
     }
 }
 
 @CordaSerializable
 data class DummyIdentity(val name: String) : BNIdentity
 
-fun StartedMockNode.identity() = info.legalIdentities.single()
+fun TestStartedNode.identity() = info.legalIdentities.single()

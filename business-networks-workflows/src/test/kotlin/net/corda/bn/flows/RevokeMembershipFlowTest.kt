@@ -59,6 +59,19 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
         assertFailsWith<InvalidBusinessNetworkStateException> { runRevokeMembershipFlow(authorisedMember, authorisedMembership.linearId) }
     }
 
+	@Test(timeout = 300_000)
+	fun `revoke membership flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        runRevokeMembershipFlow(restartedAuthorisedMember, membership.linearId)
+	}
+
     @Test(timeout = 300_000)
     fun `revoke membership flow happy path`() {
         val authorisedMember = authorisedMembers.first()

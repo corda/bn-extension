@@ -69,6 +69,15 @@ class CreateBusinessNetworkFlowTest : MembershipManagementFlowTest(numberOfAutho
     }
 
     @Test(timeout = 300_000)
+    fun `create business network flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        runCreateBusinessNetworkFlow(authorisedMember)
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        runCreateBusinessNetworkFlow(restartedAuthorisedMember)
+    }
+
+    @Test(timeout = 300_000)
     fun `create business network flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val (membership, command) = runCreateBusinessNetworkFlow(authorisedMember, businessIdentity = DummyIdentity("dummy-identity")).run {

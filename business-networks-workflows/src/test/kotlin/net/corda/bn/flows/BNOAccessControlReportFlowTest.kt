@@ -26,6 +26,26 @@ class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuth
     }
 
     @Test(timeout = 300_000)
+    fun `bno access control flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val firstRegularMember = regularMembers.first()
+        val secondRegularMember = regularMembers.last()
+
+        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+
+        listOf(firstRegularMember, secondRegularMember).forEach { member ->
+            runRequestAndActivateMembershipFlows(member, authorisedMember, networkId)
+        }
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        listOf(firstRegularMember, secondRegularMember).forEach { member ->
+            restartNodeWithRotateIdentityKey(member)
+        }
+
+        runBNOAccessControlReportFlow(restartedAuthorisedMember, networkId)
+    }
+
+    @Test(timeout = 300_000)
     fun `bno access control flow happy path`() {
         val authorisedMember = authorisedMembers.first()
         val firstRegularMember = regularMembers.first()

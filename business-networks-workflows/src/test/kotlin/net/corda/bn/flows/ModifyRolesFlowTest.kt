@@ -4,6 +4,7 @@ import net.corda.bn.contracts.MembershipContract
 import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.BNORole
 import net.corda.bn.states.BNRole
+import net.corda.bn.states.MemberRole
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
 import org.junit.Test
@@ -73,6 +74,21 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         assertFailsWith<InvalidBusinessNetworkStateException> { runModifyRolesFlow(authorisedMember, authorisedMembership.linearId, setOf(lesserBNORole)) }
     }
 
+	@Test(timeout = 300_000)
+    fun `modify roles flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+            networkId to linearId
+        }
+        val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        runModifyRolesFlow(restartedAuthorisedMember, regularMembership.linearId, setOf(BNORole()))
+        runModifyRolesFlow(restartedAuthorisedMember, authorisedMembershipId, setOf(BNORole(), MemberRole()))
+    }
 
     @Test(timeout = 300_000)
     fun `modify roles flow happy path`() {
