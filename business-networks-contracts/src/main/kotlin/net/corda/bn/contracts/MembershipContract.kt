@@ -111,7 +111,6 @@ open class MembershipContract : Contract {
             }
             outputState?.apply {
                 "Output state's modified timestamp should be greater or equal to issued timestamp" using (issued <= modified)
-                "Required signers should be subset of all output state's participants" using (participants.map { it.owningKey }.containsAll(command.value.requiredSigners))
             }
             if (inputState != null && outputState != null) {
                 "Input and output state should have same Corda identity" using (inputState.identity.cordaIdentity == outputState.identity.cordaIdentity)

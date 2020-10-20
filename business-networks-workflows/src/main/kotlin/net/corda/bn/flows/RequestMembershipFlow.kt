@@ -114,7 +114,7 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
         try {
             // fetch observers
             val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
-            val observers = (authorisedMemberships.map { it.state.data.identity.cordaIdentity } - ourIdentity).toSet()
+            val observers = (authorisedMemberships.map { it.state.data.identity.cordaIdentity }.updated() - ourIdentity).toSet()
 
             // build transaction
             val membershipState = MembershipState(

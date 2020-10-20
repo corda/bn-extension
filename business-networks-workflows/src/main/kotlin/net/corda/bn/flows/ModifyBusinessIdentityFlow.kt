@@ -51,8 +51,8 @@ class ModifyBusinessIdentityFlow(
             it.state.data.identity.cordaIdentity
         }.filterNot {
             // remove modified member from signers only if it is not the flow initiator (since initiator must sign the transaction)
-            it == membership.state.data.identity.cordaIdentity && it != ourIdentity
-        }
+            it == membership.state.data.identity.cordaIdentity && it.name != ourIdentity.name
+        }.updated().toPartyList()
 
         // building transaction
         val outputMembership = membership.state.data.run {
@@ -66,7 +66,7 @@ class ModifyBusinessIdentityFlow(
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction
-        val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
+        val observerSessions = (outputMembership.participants.updated() - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         auditLogger.info("$ourIdentity successfully modified Business Identity of a member with $membership membership ID from " +

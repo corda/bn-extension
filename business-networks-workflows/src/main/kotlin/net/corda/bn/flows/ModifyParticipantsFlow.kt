@@ -40,7 +40,7 @@ class ModifyParticipantsFlow(
                 .addCommand(MembershipContract.Commands.ModifyParticipants(requiredSigners), requiredSigners)
         builder.verify(serviceHub)
 
-        val observers = membership.state.data.participants.toSet() + participants - ourIdentity
+        val observers = membership.state.data.participants.updated().toSet() + participants.updated() - ourIdentity
         val observerSessions = observers.map { initiateFlow(it) }
         collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 

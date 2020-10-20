@@ -58,7 +58,7 @@ class OnboardMembershipFlow(
         try {
             // fetch observers
             val authorisedMembers = bnService.getMembersAuthorisedToModifyMembership(networkId)
-            val observers = (authorisedMembers.map { it.state.data.identity.cordaIdentity } - ourIdentity).toSet()
+            val observers = (authorisedMembers.map { it.state.data.identity.cordaIdentity }.updated() - ourIdentity).toSet()
 
             // build transaction
             val membershipState = MembershipState(

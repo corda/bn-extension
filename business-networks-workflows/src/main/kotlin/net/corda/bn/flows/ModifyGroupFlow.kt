@@ -168,7 +168,7 @@ class ModifyGroupInternalFlow(
             bnService: BNService
     ): Pair<GroupState, Set<StateAndRef<MembershipState>>> {
         // check if initiator is one of group participants
-        if (participantsIdentities != null && !participantsIdentities.contains(ourIdentity)) {
+        if (participantsIdentities != null && !participantsIdentities.map { it.name }.contains(ourIdentity.name)) {
             throw IllegalBusinessNetworkGroupStateException("Initiator must be participant of modified Business Network Group.")
         }
 
@@ -219,7 +219,7 @@ class ModifyGroupInternalFlow(
     ): SignedTransaction {
         // fetch signers
         val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
-        val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }
+        val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }.updated().toPartyList()
 
         // building transaction
         val requiredSigners = signers.map { it.owningKey }
@@ -230,7 +230,7 @@ class ModifyGroupInternalFlow(
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction
-        val observers = inputGroup.state.data.participants.toSet() + outputGroup.participants - ourIdentity
+        val observers = inputGroup.state.data.participants.updated().toSet() + outputGroup.participants.updated() - ourIdentity
         val observerSessions = observers.map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 

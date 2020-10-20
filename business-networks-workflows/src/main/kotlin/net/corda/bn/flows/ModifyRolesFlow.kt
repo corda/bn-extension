@@ -61,8 +61,8 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
             it.state.data.identity.cordaIdentity
         }.filterNot {
             // remove modified member from signers only if it is not the flow initiator (since initiator must sign the transaction)
-            it == membership.state.data.identity.cordaIdentity && it != ourIdentity
-        }
+            it == membership.state.data.identity.cordaIdentity && it.name != ourIdentity.name
+        }.updated().toPartyList()
 
         // building transaction
         val outputMembership = membership.state.data.copy(roles = roles, modified = serviceHub.clock.instant())
@@ -74,7 +74,7 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
         builder.verify(serviceHub)
 
         // collect signatures and finalise transactions
-        val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
+        val observerSessions = (outputMembership.participants.updated() - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         auditLogger.info("$ourIdentity successfully modified roles for membership with $membershipId membership ID from ${membership.state.data.roles} to $roles")

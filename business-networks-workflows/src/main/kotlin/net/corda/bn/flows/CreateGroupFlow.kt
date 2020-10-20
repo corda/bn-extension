@@ -71,7 +71,7 @@ class CreateGroupFlow(
 
             // fetch signers
             val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
-            val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }
+            val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }.updated().toPartyList()
 
             // building transaction
             val group = GroupState(
@@ -88,7 +88,7 @@ class CreateGroupFlow(
             builder.verify(serviceHub)
 
             // collect signatures and finalise transaction
-            val observers = additionalParticipantsIdentities - ourIdentity
+            val observers = additionalParticipantsIdentities.updated() - ourIdentity
             val observerSessions = observers.map { initiateFlow(it) }
             val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 

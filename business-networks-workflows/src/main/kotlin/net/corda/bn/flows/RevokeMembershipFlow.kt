@@ -45,7 +45,11 @@ class RevokeMembershipFlow(private val membershipId: UniqueIdentifier, private v
 
         // fetch signers
         val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
-        val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity } - membership.state.data.identity.cordaIdentity
+        val signers = (authorisedMemberships.filter {
+            it.state.data.isActive()
+        }.map {
+            it.state.data.identity.cordaIdentity
+        } - membership.state.data.identity.cordaIdentity).updated().toPartyList()
 
         // remove revoked member from all the groups he is participant of
         val revokedMemberIdentity = membership.state.data.identity.cordaIdentity
@@ -69,7 +73,7 @@ class RevokeMembershipFlow(private val membershipId: UniqueIdentifier, private v
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction
-        val observerSessions = (membership.state.data.participants - ourIdentity).map { initiateFlow(it) }
+        val observerSessions = (membership.state.data.participants.updated() - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         auditLogger.info("$ourIdentity successfully revoked member with $membershipId membership ID")

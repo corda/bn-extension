@@ -80,12 +80,6 @@ class MembershipContractTest {
                 command(memberIdentity.owningKey, MembershipContract.Commands.Request(listOf(memberIdentity.owningKey)))
                 this `fails with` "Output state's modified timestamp should be greater or equal to issued timestamp"
             }
-            transaction {
-                val output = membershipState.run { copy(participants = listOf(memberIdentity)) }
-                output(MembershipContract.CONTRACT_NAME, output)
-                command(bnoIdentity.owningKey, MembershipContract.Commands.Request(listOf(bnoIdentity.owningKey)))
-                this `fails with` "Required signers should be subset of all output state's participants"
-            }
 
             val input = membershipState
             transaction {

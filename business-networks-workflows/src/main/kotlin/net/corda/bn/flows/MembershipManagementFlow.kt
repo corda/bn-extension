@@ -13,6 +13,7 @@ import net.corda.core.flows.ReceiveFinalityFlow
 import net.corda.core.flows.ReceiveTransactionFlow
 import net.corda.core.flows.SendTransactionFlow
 import net.corda.core.flows.SignTransactionFlow
+import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 import net.corda.core.node.StatesToRecord
 import net.corda.core.transactions.SignedTransaction
@@ -173,4 +174,15 @@ abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
             subFlow(ModifyParticipantsFlow(membership, newParticipants.toList(), signers, notary))
         }
     }
+
+    /** Returns list of [Party] objects with latest owning key. **/
+    protected fun Collection<AbstractParty>.updated(): List<AbstractParty> = map {
+        it.nameOrNull()?.let { name ->
+            serviceHub.identityService.wellKnownPartyFromX500Name(name)
+                    ?: throw FlowException("Party with $name X500 name doesn't exist")
+        } ?: it
+    }
+
+    /** Casts all [AbstractParty] objects of the collection to [Party]. **/
+    protected fun Collection<AbstractParty>.toPartyList(): List<Party> = map { it as Party }
 }

@@ -53,7 +53,7 @@ class DeleteGroupFlow(private val groupId: UniqueIdentifier, private val notary:
 
         // fetch signers
         val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId)
-        val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }
+        val signers = authorisedMemberships.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }.updated().toPartyList()
 
         // building group exit transaction since deleted group state must be marked historic on all participants's vaults.
         val requiredSigners = signers.map { it.owningKey }
@@ -63,7 +63,7 @@ class DeleteGroupFlow(private val groupId: UniqueIdentifier, private val notary:
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction
-        val observers = group.state.data.participants - ourIdentity
+        val observers = group.state.data.participants.updated() - ourIdentity
         val observerSessions = observers.map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 

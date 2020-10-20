@@ -115,7 +115,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(identityCriteria(party))
         val states = serviceHub.vaultService.queryBy<MembershipState>(criteria).states
         return states.maxBy { it.state.data.modified }?.apply {
-            check(ourIdentity in state.data.participants) { "Caller is not part of any Business Network Group that $party is part of" }
+            check(ourIdentity.name in state.data.participants.map { it.nameOrNull() }) { "Caller is not part of any Business Network Group that $party is part of" }
         }
     }
 
@@ -135,7 +135,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         val states = serviceHub.vaultService.queryBy<MembershipState>(criteria).states
         return states.maxBy { it.state.data.modified }?.apply {
             check(isBusinessNetworkMember(state.data.networkId, ourIdentity)) { "Caller is not member of the Business Network with ${state.data.networkId} ID" }
-            check(ourIdentity in state.data.participants) { "Caller is not part of any Business Network Group that ${state.data.identity.cordaIdentity} is part of" }
+            check(ourIdentity.name in state.data.participants.map { it.nameOrNull() }) { "Caller is not part of any Business Network Group that ${state.data.identity.cordaIdentity} is part of" }
         }
     }
 
@@ -171,8 +171,8 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(membershipNetworkIdCriteria(networkId))
                 .and(statusCriteria(statuses.toList()))
-        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.filter {
-            ourIdentity in it.state.data.participants
+        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.filter { membership ->
+            ourIdentity.name in membership.state.data.participants.map { it.nameOrNull() }
         }
     }
 
@@ -202,7 +202,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
                 .and(linearIdCriteria(groupId))
         val state = serviceHub.vaultService.queryBy<GroupState>(criteria).states.map { it.state.data }.maxBy { it.modified }
-        return state != null && ourIdentity in state.participants
+        return state != null && ourIdentity.name in state.participants.map { it.name }
     }
 
     /**
@@ -221,7 +221,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(groupNetworkIdCriteria(networkId))
                 .and(groupNameCriteria(groupName))
         val state = serviceHub.vaultService.queryBy<GroupState>(criteria).states.map { it.state.data }.maxBy { it.modified }
-        return state != null && ourIdentity in state.participants
+        return state != null && ourIdentity.name in state.participants.map { it.name }
     }
 
     /**
@@ -238,7 +238,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(linearIdCriteria(groupId))
         val states = serviceHub.vaultService.queryBy<GroupState>(criteria).states
         return states.maxBy { it.state.data.modified }?.apply {
-            check(ourIdentity in state.data.participants) { "Caller is not part of the Business Network Group with $groupId ID" }
+            check(ourIdentity.name in state.data.participants.map { it.name }) { "Caller is not part of the Business Network Group with $groupId ID" }
         }
     }
 
@@ -261,7 +261,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(groupNameCriteria(groupName))
         val states = serviceHub.vaultService.queryBy<GroupState>(criteria).states
         return states.maxBy { it.state.data.modified }?.apply {
-            check(ourIdentity in state.data.participants) { "Caller is not part of the Business Network Group with $groupName name" }
+            check(ourIdentity.name in state.data.participants.map { it.name }) { "Caller is not part of the Business Network Group with $groupName name" }
         }
     }
 
@@ -279,8 +279,8 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
 
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(groupNetworkIdCriteria(networkId))
-        return serviceHub.vaultService.queryBy<GroupState>(criteria).states.filter {
-            ourIdentity in it.state.data.participants
+        return serviceHub.vaultService.queryBy<GroupState>(criteria).states.filter { group ->
+            ourIdentity.name in group.state.data.participants.map { it.name }
         }
     }
 
