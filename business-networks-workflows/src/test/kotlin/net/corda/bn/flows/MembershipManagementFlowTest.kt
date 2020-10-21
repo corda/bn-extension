@@ -8,6 +8,7 @@ import net.corda.bn.states.BNIdentity
 import net.corda.bn.states.BNRole
 import net.corda.bn.states.ChangeRequestState
 import net.corda.bn.states.GroupState
+import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier

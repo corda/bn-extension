@@ -112,7 +112,7 @@ open class ChangeRequestContract : Contract {
     open fun verifyRequest(tx: LedgerTransaction, command: CommandWithParties<Commands>, outputChangeRequest: ChangeRequestState) = requireThat {
         "Membership change request transaction shouldn't contain any inputs" using (tx.inputs.isEmpty())
         "Membership change request transaction should contain output state in PENDING status" using (outputChangeRequest.isPending())
-        "Membership change request transaction should issue request with non-empty roles change set or non-empty business identity change" using (outputChangeRequest.proposedRoleChange != null || outputChangeRequest.proposedBusinessIdentityChange != null)
+        "Membership change request transaction should issue request with non-empty roles change set or non-empty business identity change" using (outputChangeRequest.pendingRoleChange != null || outputChangeRequest.pendingBusinessIdentityChange != null)
     }
 
     /**
@@ -132,8 +132,8 @@ open class ChangeRequestContract : Contract {
     ) = requireThat {
         "Input state of membership change request transaction shouldn't be already approved or declined" using (inputChangeRequest.isPending())
         "Output state of membership change request transaction should be approved" using (outputChangeRequest.isApproved())
-        "Input and output state of membership change request transaction should have same roles set" using (inputChangeRequest.proposedRoleChange == outputChangeRequest.proposedRoleChange)
-        "Input and output state of membership change request transaction should have same business identity" using (inputChangeRequest.proposedBusinessIdentityChange == outputChangeRequest.proposedBusinessIdentityChange)
+        "Input and output state of membership change request transaction should have same roles set" using (inputChangeRequest.pendingRoleChange == outputChangeRequest.pendingRoleChange)
+        "Input and output state of membership change request transaction should have same business identity" using (inputChangeRequest.pendingBusinessIdentityChange == outputChangeRequest.pendingBusinessIdentityChange)
     }
 
     /**
@@ -153,8 +153,8 @@ open class ChangeRequestContract : Contract {
     ) = requireThat {
         "Input state of membership change request transaction shouldn't be already approved or declined" using (inputChangeRequest.isPending())
         "Output state of membership change request transaction should be declined" using (outputChangeRequest.isDeclined())
-        "Input and output state of membership change request transaction should have same roles set" using (inputChangeRequest.proposedRoleChange == outputChangeRequest.proposedRoleChange)
-        "Input and output state of membership change request transaction should have same business identity" using (inputChangeRequest.proposedBusinessIdentityChange == outputChangeRequest.proposedBusinessIdentityChange)
+        "Input and output state of membership change request transaction should have same roles set" using (inputChangeRequest.pendingRoleChange == outputChangeRequest.pendingRoleChange)
+        "Input and output state of membership change request transaction should have same business identity" using (inputChangeRequest.pendingBusinessIdentityChange == outputChangeRequest.pendingBusinessIdentityChange)
     }
 
     /**
