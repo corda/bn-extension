@@ -7,25 +7,30 @@ import net.corda.bn.states.MembershipState
 import net.corda.bn.states.ChangeRequestState
 import net.corda.bn.states.ChangeRequestStatus
 import net.corda.core.contracts.UniqueIdentifier
+import net.corda.core.serialization.CordaSerializable
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 
 class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1, numberOfRegularMembers = 2) {
+
+    @CordaSerializable
+    private class ModifyBusinessIdentityPermission : BNRole("BusinessIdentityPermission", setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
+
+    @CordaSerializable
+    private class ModifyRolesPermission : BNRole("RolesPermission", setOf(AdminPermission.CAN_MODIFY_ROLE))
 
     @Test(timeout = 300_000)
     fun `membership attribute change request rejection should fail due to wrong request ID`() {
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val modifyBusinessIdentityPermission = BNRole("BusinessIdentityPermission",
-                setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
-
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
-        runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, roles = setOf(modifyBusinessIdentityPermission))
+        runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, roles = setOf(ModifyBusinessIdentityPermission()))
 
         assertFailsWith<MembershipChangeRequestNotFoundException> {
             runDeclineMembershipAttributeChangeFlow(authorisedMember, UniqueIdentifier())
@@ -38,25 +43,19 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val firstRegularMember = regularMembers.first()
         val secondRegularMember = regularMembers.last()
 
-        val modifyRolesPermission = BNRole("RolesPermission",
-                setOf(AdminPermission.CAN_MODIFY_ROLE))
-
-        val modifyBusinessIdentityPermission = BNRole("BusinessIdentityPermission",
-                setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
-
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         runRequestAndActivateMembershipFlows(firstRegularMember, authorisedMember, networkId)
         val membershipId = (runRequestAndActivateMembershipFlows(secondRegularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
 
         //we add the required role
-        runModifyRolesFlow(authorisedMember, membershipId, setOf(modifyRolesPermission))
+        runModifyRolesFlow(authorisedMember, membershipId, setOf(ModifyRolesPermission()))
 
-        val request = runRequestMembershipAttributeChangeFlow(firstRegularMember, secondRegularMember.identity(), networkId, roles = setOf(modifyBusinessIdentityPermission)).run {
+        val request = runRequestMembershipAttributeChangeFlow(firstRegularMember, secondRegularMember.identity(), networkId, roles = setOf(ModifyBusinessIdentityPermission())).run {
             tx.outputs.single()
         }
 
         //we overwrite the role to make sure we will fail
-        runModifyRolesFlow(authorisedMember, membershipId, setOf(modifyBusinessIdentityPermission))
+        runModifyRolesFlow(authorisedMember, membershipId, setOf(ModifyBusinessIdentityPermission()))
 
         request.apply {
             val data = data as ChangeRequestState
@@ -71,14 +70,11 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val modifyBusinessIdentityPermission = BNRole("BusinessIdentityPermission",
-                setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
-
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         val membershipId = (runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
 
         val (request, command) =
-                runRequestAndDeclineMembershipAttributeChangeFlow(regularMember, authorisedMember, networkId, roles = setOf(modifyBusinessIdentityPermission)).run {
+                runRequestAndDeclineMembershipAttributeChangeFlow(regularMember, authorisedMember, networkId, roles = setOf(ModifyBusinessIdentityPermission())).run {
                     assertTrue(tx.inputs.size == 1)
                     assertTrue(tx.outputs.size == 1)
                     assertTrue(tx.requiredSigningKeys.size == 2)
@@ -90,7 +86,7 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
             assertEquals(ChangeRequestContract.CONTRACT_NAME, contract)
             assertTrue(data is ChangeRequestState)
             val data = data as ChangeRequestState
-            assertEquals(setOf(modifyBusinessIdentityPermission), data.pendingRoleChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.pendingRoleChange)
             assertEquals(ChangeRequestStatus.DECLINED, data.status)
             assertTrue(data.participants.size == 2)
             assertTrue(data.participants.containsAll(listOf(authorisedMember.identity(), regularMember.identity())))
@@ -99,7 +95,7 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
 
         val membership = getMembershipFromVault(regularMember, membershipId)
 
-        assertTrue(!membership.canModifyBusinessIdentity())
+        assertFalse(membership.canModifyBusinessIdentity())
         assertTrue(membership.roles.isEmpty())
     }
 }

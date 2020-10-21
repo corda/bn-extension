@@ -20,6 +20,9 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
     @CordaSerializable
     private data class DummyIdentity(val name: String) : BNIdentity
 
+    @CordaSerializable
+    private class ModifyBusinessIdentityPermission : BNRole("BusinessIdentityPermission", setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
+
     @Test(timeout = 300_000)
     fun `request membership attribute change flow should fail if there are no role or business identity changes given`() {
         val authorisedMember = authorisedMembers.first()
@@ -38,14 +41,11 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val modifyBusinessIdentityPermission = BNRole("ModifyBusinessIdentityPermission",
-                setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
-
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         assertFailsWith<BusinessNetworkNotFoundException> {
-            runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), "networkDoesNotExist", roles = setOf(modifyBusinessIdentityPermission))
+            runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), "networkDoesNotExist", roles = setOf(ModifyBusinessIdentityPermission()))
         }
     }
 
@@ -57,14 +57,11 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val bnService = authorisedMember.services.cordaService(BNService::class.java)
         bnService.lockStorage.createLock(BNRequestType.PENDING_ATTRIBUTE_CHANGE_REQUEST, regularMember.identity().toString())
 
-        val modifyBusinessIdentityPermission = BNRole("ModifyBusinessIdentityPermission",
-                setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
-
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         assertFailsWith<FlowException> {
-            runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, roles = setOf(modifyBusinessIdentityPermission))
+            runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, roles = setOf(ModifyBusinessIdentityPermission()))
         }
 
         bnService.lockStorage.deleteLock(BNRequestType.PENDING_ATTRIBUTE_CHANGE_REQUEST, regularMember.identity().toString())
@@ -76,17 +73,14 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val firstRegularMember = regularMembers.first()
         val secondRegularMember = regularMembers.last()
 
-        val modifyBusinessIdentityPermission = BNRole("ModifyBusinessIdentityPermission",
-                setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
-
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         runRequestAndActivateMembershipFlows(firstRegularMember, authorisedMember, networkId)
         val membershipId = (runRequestAndActivateMembershipFlows(secondRegularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
 
-        runModifyRolesFlow(authorisedMember, membershipId, setOf(modifyBusinessIdentityPermission))
+        runModifyRolesFlow(authorisedMember, membershipId, setOf(ModifyBusinessIdentityPermission()))
 
         assertFailsWith<MembershipAuthorisationException> {
-            runRequestMembershipAttributeChangeFlow(firstRegularMember, secondRegularMember.identity(), networkId, roles = setOf(modifyBusinessIdentityPermission))
+            runRequestMembershipAttributeChangeFlow(firstRegularMember, secondRegularMember.identity(), networkId, roles = setOf(ModifyBusinessIdentityPermission()))
         }
     }
 
@@ -95,14 +89,11 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val modifyBusinessIdentityPermission = BNRole("ModifyBusinessIdentityPermission",
-                setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
-
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val (request, command) =
-                runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, roles = setOf(modifyBusinessIdentityPermission)).run {
+                runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, roles = setOf(ModifyBusinessIdentityPermission())).run {
                     assertTrue(tx.inputs.isEmpty())
                     assertTrue(tx.outputs.size == 1)
                     verifyRequiredSignatures()
@@ -113,12 +104,12 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
             assertEquals(ChangeRequestContract.CONTRACT_NAME, contract)
             assertTrue(data is ChangeRequestState)
             val data = data as ChangeRequestState
-            assertEquals(setOf(modifyBusinessIdentityPermission), data.pendingRoleChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.pendingRoleChange)
             assertEquals(ChangeRequestStatus.PENDING, data.status)
             assertTrue { data.participants.size == 2 }
             assertTrue { data.participants.containsAll(listOf(authorisedMember.identity(), regularMember.identity())) }
-            val authorisedMemberData = getRequestFromVault(regularMember, data.linearId)
-            assertEquals(setOf(modifyBusinessIdentityPermission), authorisedMemberData.pendingRoleChange)
+            val requestData = getRequestFromVault(regularMember, data.linearId)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), requestData.pendingRoleChange)
         }
         assertTrue(command.value is ChangeRequestContract.Commands.Request)
     }
@@ -128,14 +119,11 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val modifyBusinessIdentityPermission = BNRole("ModifyBusinessIdentityPermission",
-                setOf(AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY))
-
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val (request, command) =
-                runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, DummyIdentity("dummy"), setOf(modifyBusinessIdentityPermission)).run {
+                runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, DummyIdentity("dummy"), setOf(ModifyBusinessIdentityPermission())).run {
                     assertTrue(tx.inputs.isEmpty())
                     assertTrue(tx.outputs.size == 1)
                     verifyRequiredSignatures()
@@ -146,13 +134,13 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
             assertEquals(ChangeRequestContract.CONTRACT_NAME, contract)
             assertTrue(data is ChangeRequestState)
             val data = data as ChangeRequestState
-            assertEquals(setOf(modifyBusinessIdentityPermission), data.pendingRoleChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.pendingRoleChange)
             assertEquals(DummyIdentity("dummy"), data.pendingBusinessIdentityChange)
             assertEquals(ChangeRequestStatus.PENDING, data.status)
             assertTrue { data.participants.size == 2 }
             assertTrue { data.participants.containsAll(listOf(authorisedMember.identity(), regularMember.identity())) }
-            val authorisedMemberData = getRequestFromVault(regularMember, data.linearId)
-            assertEquals(setOf(modifyBusinessIdentityPermission), authorisedMemberData.pendingRoleChange)
+            val requestData = getRequestFromVault(regularMember, data.linearId)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), requestData.pendingRoleChange)
         }
         assertTrue(command.value is ChangeRequestContract.Commands.Request)
     }

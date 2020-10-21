@@ -22,7 +22,7 @@ import net.corda.core.transactions.TransactionBuilder
  * */
 @InitiatingFlow
 @StartableByRPC
-class DeleteAttributeChangeRequestFlow(
+class DeleteMembershipAttributeChangeRequestFlow(
         private val requestId: UniqueIdentifier,
         private val notary: Party? = null
 ) : MembershipManagementFlow<SignedTransaction>() {
@@ -51,8 +51,8 @@ class DeleteAttributeChangeRequestFlow(
     }
 }
 
-@InitiatedBy(DeleteAttributeChangeRequestFlow::class)
-class DeleteAttributeChangeRequestFlowResponderFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
+@InitiatedBy(DeleteMembershipAttributeChangeRequestFlow::class)
+class DeleteMembershipAttributeChangeRequestResponderFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
 
     @Suspendable
     override fun call() {

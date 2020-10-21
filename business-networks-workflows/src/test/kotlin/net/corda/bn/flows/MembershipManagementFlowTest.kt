@@ -258,7 +258,7 @@ abstract class MembershipManagementFlowTest(
             requestId: UniqueIdentifier,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(DeleteAttributeChangeRequestFlow(requestId, notary))
+        val future = initiator.startFlow(DeleteMembershipAttributeChangeRequestFlow(requestId, notary))
         mockNetwork.runNetwork()
         return future.getOrThrow()
     }
