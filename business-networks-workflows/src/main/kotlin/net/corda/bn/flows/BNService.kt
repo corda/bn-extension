@@ -2,6 +2,7 @@ package net.corda.bn.flows
 
 import net.corda.bn.schemas.GroupStateSchemaV1
 import net.corda.bn.schemas.MembershipStateSchemaV1
+import net.corda.bn.states.ChangeRequestState
 import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipState
@@ -94,6 +95,25 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(membershipNetworkIdCriteria(networkId))
                 .and(identityCriteria(party))
         return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.isNotEmpty()
+    }
+
+    /**
+     * Queries for membership with [party] identity inside Business Network with [networkId] ID.
+     *
+     * @param networkId ID of the Business Network.
+     * @param party Identity of the member.
+     *
+     * @return Membership state of member matching the query. If that member doesn't exist, returns [null].
+     *
+     * @throws IllegalStateException If the caller is not member of the Business Network with [networkId] ID or is not
+     * part of any Business Network Group that [party] is part of.
+     */
+    fun getMembershipChangeRequest(requestId: UniqueIdentifier): StateAndRef<ChangeRequestState>? {
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+                .and(linearIdCriteria(requestId))
+
+        val states = serviceHub.vaultService.queryBy<ChangeRequestState>(criteria).states
+        return states.maxBy { it.state.data.modified }
     }
 
     /**
