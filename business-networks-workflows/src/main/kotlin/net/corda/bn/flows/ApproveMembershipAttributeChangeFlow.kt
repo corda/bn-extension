@@ -16,7 +16,7 @@ import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 
 /**
- * This flow is initiated by an authorised member who wants to accept a [MembershipModificationRequest] to change
+ * This flow is initiated by an authorised member who wants to approve a [MembershipModificationRequest] to change
  * a members attributes.
  * Modifies an existing [ChangeRequestState]'s status to APPROVED on initiator's and authorised member's ledgers and
  * executes the changes.
@@ -26,7 +26,7 @@ import net.corda.core.transactions.TransactionBuilder
  * */
 @InitiatingFlow
 @StartableByRPC
-class AcceptMembershipAttributeChangeFlow(
+class ApproveMembershipAttributeChangeFlow(
         private val requestId: UniqueIdentifier,
         private val notary: Party? = null
 ) : MembershipManagementFlow<SignedTransaction>() {
@@ -82,8 +82,8 @@ class AcceptMembershipAttributeChangeFlow(
     }
 }
 
-@InitiatedBy(AcceptMembershipAttributeChangeFlow::class)
-class AcceptMembershipAttributeChangeResponderFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
+@InitiatedBy(ApproveMembershipAttributeChangeFlow::class)
+class ApproveMembershipAttributeChangeResponderFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
 
     @Suspendable
     override fun call() {
