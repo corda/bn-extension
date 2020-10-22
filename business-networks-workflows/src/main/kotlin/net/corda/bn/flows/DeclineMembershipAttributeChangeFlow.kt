@@ -18,7 +18,7 @@ import net.corda.core.transactions.TransactionBuilder
 /**
  * This flow is initiated by an authorised member who wants to decline a [MembershipModificationRequest] to change
  * a members attributes.
- * Modifies an existing [ChangeRequestState]'s status to DECLINED on initiator's and authorised member's ledgers.
+ * Modifies an existing [ChangeRequestState]'s status to DECLINED.
  *
  * @property requestId The ID of the request which needs to be rejected.
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
@@ -49,10 +49,10 @@ class DeclineMembershipAttributeChangeFlow(
         // check whether party had permissions to modify the attributes
         val networkId = bnService.getMembership(membershipChangeData.membershipId)!!.state.data.networkId
 
-        if (membershipChangeData.pendingBusinessIdentityChange != null) {
+        if (membershipChangeData.proposedBusinessIdentityChange != null) {
             authorise(networkId, bnService) { it.canModifyBusinessIdentity() }
         }
-        if (membershipChangeData.pendingRoleChange != null) {
+        if (membershipChangeData.proposedRoleChange != null) {
             authorise(networkId, bnService) { it.canModifyRoles() }
         }
 

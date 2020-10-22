@@ -320,11 +320,6 @@ abstract class MembershipManagementFlowTest(
         return bnService.getAllBusinessNetworkGroups(networkId).map { it.state.data }
     }
 
-    protected fun getMembershipFromVault(node: StartedMockNode, membershipId: UniqueIdentifier) : MembershipState {
-        val bnService = node.services.cordaService(BNService::class.java)
-        return bnService.getMembership(membershipId)!!.state.data
-    }
-
     protected fun getRequestFromVault(node: StartedMockNode, requestId: UniqueIdentifier): ChangeRequestState {
         val bnService = node.services.cordaService(BNService::class.java)
         return bnService.getMembershipChangeRequest(requestId)!!.state.data

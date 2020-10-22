@@ -16,8 +16,8 @@ import java.time.Instant
  *
  * @property status The status of the request.
  * @property membershipId ID of the membership which needs to be updated.
- * @property pendingRoleChange A set of [BNRole]s which has to overwrite the existing role set.
- * @property pendingBusinessIdentityChange A [BNIdentity] which has to overwrite the existing identity.
+ * @property proposedRoleChange A set of proposed [BNRole] which has to overwrite the existing role set.
+ * @property proposedBusinessIdentityChange A proposed [BNIdentity] which has to overwrite the existing identity.
  * @property issued Timestamp when the state has been issued.
  * @property modified Timestamp when the state has been modified last time.
  * */
@@ -25,8 +25,8 @@ import java.time.Instant
 data class ChangeRequestState(
         val status: ChangeRequestStatus,
         val membershipId: UniqueIdentifier,
-        val pendingRoleChange: Set<BNRole>? = null,
-        val pendingBusinessIdentityChange: BNIdentity? = null,
+        val proposedRoleChange: Set<BNRole>? = null,
+        val proposedBusinessIdentityChange: BNIdentity? = null,
         val issued: Instant = Instant.now(),
         val modified: Instant = issued,
         override val linearId: UniqueIdentifier = UniqueIdentifier(),

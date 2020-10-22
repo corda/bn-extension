@@ -133,8 +133,8 @@ private class RequestMembershipAttributeChangeResponderFlow(private val session:
             val modificationRequest = ChangeRequestState(
                     status = ChangeRequestStatus.PENDING,
                     membershipId = membershipId,
-                    pendingRoleChange = roles,
-                    pendingBusinessIdentityChange = businessIdentity,
+                    proposedRoleChange = roles,
+                    proposedBusinessIdentityChange = businessIdentity,
                     participants = listOf(ourIdentity, counterParty)
             )
 

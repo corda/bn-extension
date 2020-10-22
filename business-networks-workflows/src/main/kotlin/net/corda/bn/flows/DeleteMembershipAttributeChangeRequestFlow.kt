@@ -33,7 +33,19 @@ class DeleteMembershipAttributeChangeRequestFlow(
         val membershipChangeRequest = bnService.getMembershipChangeRequest(requestId)
                 ?: throw MembershipChangeRequestNotFoundException("Could not find change request state with $requestId request ID")
 
-        val participants = membershipChangeRequest.state.data.participants
+        val membershipChangeRequestData = membershipChangeRequest.state.data
+
+        // check whether party is authorised to initiate flow
+        val networkId = bnService.getMembership(membershipChangeRequestData.membershipId)!!.state.data.networkId
+
+        if (membershipChangeRequestData.proposedBusinessIdentityChange != null) {
+            authorise(networkId, bnService) { it.canModifyBusinessIdentity() }
+        }
+        if (membershipChangeRequestData.proposedRoleChange != null) {
+            authorise(networkId, bnService) { it.canModifyRoles() }
+        }
+
+        val participants = membershipChangeRequestData.participants
 
         val requiredSigners = participants.map { it.owningKey }
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())

@@ -18,8 +18,7 @@ import net.corda.core.transactions.TransactionBuilder
 /**
  * This flow is initiated by an authorised member who wants to approve a [MembershipModificationRequest] to change
  * a members attributes.
- * Modifies an existing [ChangeRequestState]'s status to APPROVED on initiator's and authorised member's ledgers and
- * executes the changes.
+ * Modifies an existing [ChangeRequestState]'s status to APPROVED.
  *
  * @property requestId The ID of the request which needs to be accepted.
  * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
@@ -46,20 +45,16 @@ class ApproveMembershipAttributeChangeFlow(
         bnService.getMembership(membershipId)
                 ?: throw MembershipNotFoundException("Membership state with $membershipId linear ID doesn't exist")
 
-        val membershipChangeData = membershipChangeRequest.state.data
+        val membershipChangeRequestData = membershipChangeRequest.state.data
 
         // check whether party is authorised to initiate flow
-        val networkId = bnService.getMembership(membershipChangeData.membershipId)!!.state.data.networkId
+        val networkId = bnService.getMembership(membershipChangeRequestData.membershipId)!!.state.data.networkId
 
-        if (membershipChangeData.pendingBusinessIdentityChange != null) {
+        if (membershipChangeRequestData.proposedBusinessIdentityChange != null) {
             authorise(networkId, bnService) { it.canModifyBusinessIdentity() }
-            // Call the modify business identity flow if the business identity has to be modified
-            subFlow(ModifyBusinessIdentityFlow(membershipId, membershipChangeData.pendingBusinessIdentityChange!!, notary))
         }
-        if (membershipChangeData.pendingRoleChange != null) {
+        if (membershipChangeRequestData.proposedRoleChange != null) {
             authorise(networkId, bnService) { it.canModifyRoles() }
-            // Call the modify roles flow if the roles have to be modified
-            subFlow(ModifyRolesFlow(membershipId, membershipChangeData.pendingRoleChange!!, notary))
         }
 
         // building transaction

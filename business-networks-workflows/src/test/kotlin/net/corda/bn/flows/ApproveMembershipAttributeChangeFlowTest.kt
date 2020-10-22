@@ -89,18 +89,12 @@ class ApproveMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
             assertEquals(ChangeRequestContract.CONTRACT_NAME, contract)
             assertTrue(data is ChangeRequestState)
             val data = data as ChangeRequestState
-            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.pendingRoleChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.proposedRoleChange)
             assertEquals(ChangeRequestStatus.APPROVED, data.status)
             assertTrue(data.participants.size == 2)
             assertTrue(data.participants.containsAll(listOf(authorisedMember.identity(), regularMember.identity())))
         }
         assertTrue(command.value is ChangeRequestContract.Commands.Approve)
-
-        val membership = getMembershipFromVault(regularMember, membershipId)
-
-        assertTrue(membership.canModifyBusinessIdentity())
-        assertTrue(membership.roles.size == 1)
-        assertTrue(membership.roles.contains(ModifyBusinessIdentityPermission()))
     }
 
     @Test(timeout = 300_000)
@@ -124,19 +118,12 @@ class ApproveMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
             assertEquals(ChangeRequestContract.CONTRACT_NAME, contract)
             assertTrue(data is ChangeRequestState)
             val data = data as ChangeRequestState
-            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.pendingRoleChange)
-            assertEquals(DummyIdentity("dummy"), data.pendingBusinessIdentityChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.proposedRoleChange)
+            assertEquals(DummyIdentity("dummy"), data.proposedBusinessIdentityChange)
             assertEquals(ChangeRequestStatus.APPROVED, data.status)
             assertTrue (data.participants.size == 2)
             assertTrue (data.participants.containsAll(listOf(authorisedMember.identity(), regularMember.identity())))
         }
         assertTrue(command.value is ChangeRequestContract.Commands.Approve)
-
-        val membership = getMembershipFromVault(regularMember, membershipId)
-
-        assertTrue(membership.canModifyBusinessIdentity())
-        assertTrue(membership.roles.size == 1)
-        assertTrue(membership.roles.contains(ModifyBusinessIdentityPermission()))
-        assertEquals(DummyIdentity("dummy"), membership.identity.businessIdentity)
     }
 }

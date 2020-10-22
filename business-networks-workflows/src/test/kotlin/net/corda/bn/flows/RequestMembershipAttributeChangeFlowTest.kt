@@ -104,12 +104,12 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
             assertEquals(ChangeRequestContract.CONTRACT_NAME, contract)
             assertTrue(data is ChangeRequestState)
             val data = data as ChangeRequestState
-            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.pendingRoleChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.proposedRoleChange)
             assertEquals(ChangeRequestStatus.PENDING, data.status)
             assertTrue { data.participants.size == 2 }
             assertTrue { data.participants.containsAll(listOf(authorisedMember.identity(), regularMember.identity())) }
             val requestData = getRequestFromVault(regularMember, data.linearId)
-            assertEquals(setOf(ModifyBusinessIdentityPermission()), requestData.pendingRoleChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), requestData.proposedRoleChange)
         }
         assertTrue(command.value is ChangeRequestContract.Commands.Request)
     }
@@ -134,13 +134,13 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
             assertEquals(ChangeRequestContract.CONTRACT_NAME, contract)
             assertTrue(data is ChangeRequestState)
             val data = data as ChangeRequestState
-            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.pendingRoleChange)
-            assertEquals(DummyIdentity("dummy"), data.pendingBusinessIdentityChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.proposedRoleChange)
+            assertEquals(DummyIdentity("dummy"), data.proposedBusinessIdentityChange)
             assertEquals(ChangeRequestStatus.PENDING, data.status)
             assertTrue { data.participants.size == 2 }
             assertTrue { data.participants.containsAll(listOf(authorisedMember.identity(), regularMember.identity())) }
             val requestData = getRequestFromVault(regularMember, data.linearId)
-            assertEquals(setOf(ModifyBusinessIdentityPermission()), requestData.pendingRoleChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), requestData.proposedRoleChange)
         }
         assertTrue(command.value is ChangeRequestContract.Commands.Request)
     }

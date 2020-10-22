@@ -12,7 +12,6 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-import kotlin.test.assertFalse
 
 class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1, numberOfRegularMembers = 2) {
 
@@ -86,16 +85,11 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
             assertEquals(ChangeRequestContract.CONTRACT_NAME, contract)
             assertTrue(data is ChangeRequestState)
             val data = data as ChangeRequestState
-            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.pendingRoleChange)
+            assertEquals(setOf(ModifyBusinessIdentityPermission()), data.proposedRoleChange)
             assertEquals(ChangeRequestStatus.DECLINED, data.status)
             assertTrue(data.participants.size == 2)
             assertTrue(data.participants.containsAll(listOf(authorisedMember.identity(), regularMember.identity())))
         }
         assertTrue(command.value is ChangeRequestContract.Commands.Decline)
-
-        val membership = getMembershipFromVault(regularMember, membershipId)
-
-        assertFalse(membership.canModifyBusinessIdentity())
-        assertTrue(membership.roles.isEmpty())
     }
 }
