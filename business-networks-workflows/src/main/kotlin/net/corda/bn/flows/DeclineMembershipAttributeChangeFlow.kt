@@ -69,7 +69,7 @@ class DeclineMembershipAttributeChangeFlow(
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction
-        val observerSessions = (outputMembershipChangeRequest.participants - ourIdentity).map { initiateFlow(it) }
+        val observerSessions = signers.map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         auditLogger.info("$ourIdentity declined membership changes for member with $membershipId membership ID")
