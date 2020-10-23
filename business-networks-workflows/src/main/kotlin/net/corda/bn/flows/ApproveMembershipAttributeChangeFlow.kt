@@ -58,7 +58,7 @@ class ApproveMembershipAttributeChangeFlow(
 
         // building transaction
         val outputMembershipChangeRequest = membershipChangeRequest.state.data.copy(status = ChangeRequestStatus.APPROVED, modified = serviceHub.clock.instant())
-        val signers = (outputMembershipChangeRequest.participants - ourIdentity).mapNotNull {
+        val signers = outputMembershipChangeRequest.participants.mapNotNull {
             bnService.getMembership(networkId, it as Party)?.state?.data?.identity?.cordaIdentity
         }
 
@@ -70,7 +70,7 @@ class ApproveMembershipAttributeChangeFlow(
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction
-        val observerSessions = signers.map { initiateFlow(it) }
+        val observerSessions = (signers - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         auditLogger.info("$ourIdentity successfully approved membership changes for member with $membershipId membership ID")

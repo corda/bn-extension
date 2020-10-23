@@ -76,7 +76,6 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
                 runRequestAndDeclineMembershipAttributeChangeFlow(regularMember, authorisedMember, networkId, roles = setOf(ModifyBusinessIdentityPermission())).run {
                     assertTrue(tx.inputs.size == 1)
                     assertTrue(tx.outputs.size == 1)
-                    assertTrue(tx.requiredSigningKeys.size == 2)
                     verifyRequiredSignatures()
                     tx.outputs.single() to tx.commands.single()
                 }
