@@ -2,6 +2,7 @@ package net.corda.bn.flows
 
 import net.corda.bn.schemas.GroupStateSchemaV1
 import net.corda.bn.schemas.MembershipStateSchemaV1
+import net.corda.bn.states.ChangeRequestState
 import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipState
@@ -94,6 +95,26 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(membershipNetworkIdCriteria(networkId))
                 .and(identityCriteria(party))
         return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.isNotEmpty()
+    }
+
+    /**
+     * Queries for membership attribute change request with [requestId] request ID.
+     *
+     * @param requestId ID of the membership attribute change request
+     *
+     * @return Change request state for the matching request ID. If that request doesn't exist, returns [null].
+     *
+     * @throws IllegalStateException If the caller is not a participant of this transaction.
+     */
+    fun getMembershipChangeRequest(requestId: UniqueIdentifier): StateAndRef<ChangeRequestState>? {
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+                .and(linearIdCriteria(requestId))
+
+        val states = serviceHub.vaultService.queryBy<ChangeRequestState>(criteria).states
+        return states.maxBy { it.state.data.modified }?.apply {
+            check(ourIdentity in state.data.participants) { "Caller is not authorised to access data for this request." }
+
+        }
     }
 
     /**

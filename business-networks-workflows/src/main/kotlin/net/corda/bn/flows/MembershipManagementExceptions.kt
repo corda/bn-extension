@@ -36,6 +36,11 @@ class BusinessNetworkNotFoundException(message: String) : FlowException(message)
 class MembershipNotFoundException(message: String) : FlowException(message)
 
 /**
+ * Exception thrown by any [MembershipManagementFlow] whenever provided parties membership attribute change request doesn't exist.
+ */
+class MembershipChangeRequestNotFoundException(message: String) : FlowException(message)
+
+/**
  * Exception thrown by any [MembershipManagementFlow] whenever provided member's state is not appropriate for the context.
  */
 class IllegalMembershipStatusException(message: String) : FlowException(message)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+    <changeSet author="R3 Corda" id="ChangeRequestStateSchemaV1">
+        <createTable tableName="change_request_state">
+            <column name="output_index" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="transaction_id" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="integer"/>
+            <column name="membership_id" type="varchar(255)"/>
+        </createTable>
+        <addPrimaryKey columnNames="output_index, transaction_id"
+                       constraintName="PK_ChangeRequestStateSchemaV1"
+                       tableName="change_request_state"/>
+    </changeSet>
+</databaseChangeLog>
