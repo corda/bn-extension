@@ -1,6 +1,7 @@
 package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
+import net.corda.bn.contracts.GroupContract
 import net.corda.bn.contracts.MembershipContract
 import net.corda.bn.schemas.GroupStateSchemaV1
 import net.corda.bn.schemas.MembershipStateSchemaV1
@@ -16,7 +17,6 @@ import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.queryBy
-import net.corda.core.node.services.vault.Builder.equal
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.node.services.vault.builder
 import net.corda.core.transactions.SignedTransaction
@@ -50,18 +50,25 @@ class UpdateCordaIdentityFlow(
             }
         }
 
+        val updatedParticipantsList = membership.state.data.participants.map() {
+            if (it.owningKey == membership.state.data.identity.cordaIdentity.owningKey) {
+                newIdentity
+            } else it
+        }
+        val outputMembership = membership.state.data.run {
+            copy(identity = identity.copy(cordaIdentity = newIdentity), modified = serviceHub.clock.instant(),
+                    participants = updatedParticipantsList)
+        }
+
         // fetch signers
         val authorisedMemberships = getMembersAuthorisedToModifyMembership(networkId)
         val signers = authorisedMemberships.filter {
-            it.state.data.isActive()
+            it.state.data.isActive() && it.state != membership.state // Member's new identity is added at the end, avoid duplication
         }.map {
             it.state.data.identity.cordaIdentity
-        }.toSet() + membership.state.data.identity.cordaIdentity
+        }.toSet() + newIdentity
 
         // building transaction
-        val outputMembership = membership.state.data.run {
-            copy(identity = identity.copy(cordaIdentity = newIdentity), modified = serviceHub.clock.instant())
-        }
         val requiredSigners = signers.map { it.owningKey }
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membership)
@@ -73,16 +80,13 @@ class UpdateCordaIdentityFlow(
         val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers.toList())
 
-        // sync all groups modified member is part of
-        getAllBusinessNetworkGroups(networkId).filter {
-            membership.state.data.identity.cordaIdentity in it.state.data.participants
-        }.map { group ->
-            val memberships = group.state.data.participants.map {
-                getMembership(networkId, it)
-            }
 
-            subFlow(ModifyGroupFlow(group.state.data.linearId, null, memberships.map { it.state.data.linearId }.toSet(), notary))
+        // update pending memberships and memberships which are not in a group yet only if the member being changed has permissions to activate memberships or modify groups
+        if(membership.state.data.canActivateMembership()) {
+            subFlow(UpdatePendingMembershipsFlow(membership, notary))
         }
+        // update groups
+        subFlow(UpdateGroupMembersIdentityFlow(membership, notary))
 
         auditLogger.info("$ourIdentity successfully updated Corda identity of member with $membershipId membership ID")
 
@@ -109,12 +113,6 @@ class UpdateCordaIdentityFlow(
                 .and(QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::networkId.equal(networkId) }))
         return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.filter { it.state.data.canModifyMembership() }
     }
-
-    private fun getAllBusinessNetworkGroups(networkId: String): List<StateAndRef<GroupState>> {
-        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
-                .and(QueryCriteria.VaultCustomQueryCriteria(builder { GroupStateSchemaV1.PersistentGroupState::networkId.equal(networkId) }))
-        return serviceHub.vaultService.queryBy<GroupState>(criteria).states
-    }
 }
 
 @InitiatedBy(UpdateCordaIdentityFlow::class)
@@ -125,6 +123,146 @@ class UpdateCordaIdentityResponderFlow(private val session: FlowSession) : Membe
         signAndReceiveFinalisedTransaction(session) {
             if (it.value !is MembershipContract.Commands.ModifyCordaIdentity) {
                 throw FlowException("Only ModifyCordaIdentity command is allowed")
+            }
+        }
+    }
+}
+
+@InitiatingFlow
+private class UpdateGroupMembersIdentityFlow(
+        private val changedMembership: StateAndRef<MembershipState>,
+        private val notary: Party?
+): MembershipManagementFlow<SignedTransaction?>() {
+
+    @Suspendable
+    override fun call(): SignedTransaction? {
+        val networkId = changedMembership.state.data.networkId
+        val name = changedMembership.state.data.identity.cordaIdentity.name
+        val newIdentity = serviceHub.identityService.wellKnownPartyFromX500Name(name)
+                ?: throw FlowException("Party with $name X500 name doesn't exist")
+        val finalisedTransactions = getAllBusinessNetworkGroups(networkId).filter {
+            changedMembership.state.data.identity.cordaIdentity in it.state.data.participants
+        }.map { group ->
+            val newParticipants = group.state.data.participants.map {
+                if (it == changedMembership.state.data.identity.cordaIdentity) {
+                    newIdentity
+                } else {
+                    it
+                }
+            }
+
+            val authorisedMembers = getMembersAuthorisedToModifyGroups(networkId)
+            val signers = authorisedMembers.filter { it.state.data.isActive() }.map { it.state.data.identity.cordaIdentity }
+            val requiredSigners = signers.map { it.owningKey }
+            val updatedGroup = group.state.data.copy(participants = newParticipants)
+            val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
+                    .addInputState(group)
+                    .addOutputState(updatedGroup)
+                    .addCommand(GroupContract.Commands.Modify(requiredSigners), requiredSigners)
+            builder.verify(serviceHub)
+
+            // collect signatures and finalise transaction
+            val observers = (updatedGroup.participants - ourIdentity).map {
+                serviceHub.identityService.wellKnownPartyFromX500Name(it.nameOrNull())!!
+            }
+            val flowSessions = observers.toSet().map { initiateFlow(it) }
+            val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, flowSessions, observers)
+            finalisedTransaction
+        }
+
+        return finalisedTransactions.firstOrNull()
+    }
+
+    private fun getAllBusinessNetworkGroups(networkId: String): List<StateAndRef<GroupState>> {
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+                .and(QueryCriteria.VaultCustomQueryCriteria(builder { GroupStateSchemaV1.PersistentGroupState::networkId.equal(networkId) }))
+        return serviceHub.vaultService.queryBy<GroupState>(criteria).states
+    }
+
+    private fun getMembersAuthorisedToModifyGroups(networkId: String): List<StateAndRef<MembershipState>> {
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+                .and(QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::networkId.equal(networkId) }))
+        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.filter { it.state.data.canModifyGroups() }
+    }
+}
+
+@InitiatedBy(UpdateGroupMembersIdentityFlow::class)
+private class UpdateGroupMembersIdentityResponderFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
+
+    @Suspendable
+    override fun call() {
+        signAndReceiveFinalisedTransaction(session) {
+            if (it.value !is GroupContract.Commands.Modify) {
+                throw FlowException("Only ModifyCordaIdentity command is allowed")
+            }
+        }
+    }
+}
+
+@InitiatingFlow
+private class UpdatePendingMembershipsFlow(
+        private val changedMembership: StateAndRef<MembershipState>,
+        private val notary: Party?
+) : MembershipManagementFlow<SignedTransaction?>() {
+
+    @Suppress("UNCHECKED_CAST")
+    @Suspendable
+    override fun call(): SignedTransaction? {
+        val networkId = changedMembership.state.data.networkId
+        val name = changedMembership.state.data.identity.cordaIdentity.name
+        val newIdentity = serviceHub.identityService.wellKnownPartyFromX500Name(name)
+                ?: throw FlowException("Party with $name X500 name doesn't exist")
+
+        val finalisedTransactions = getAllPendingMemberships(networkId).filter {
+            changedMembership.state.data.identity.cordaIdentity in it.state.data.participants
+        }.map { membership ->
+            val updatedParticipantsList = membership.state.data.participants.map {
+                if (it.owningKey == changedMembership.state.data.identity.cordaIdentity.owningKey) {
+                    newIdentity
+                } else it
+            }
+
+            val outputMembership = membership.state.data.run {
+                copy(modified = serviceHub.clock.instant(), participants = updatedParticipantsList)
+            }
+
+            // signers should all be in the participants list
+            val requiredSigners = updatedParticipantsList.map { it.owningKey }
+            val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
+                    .addInputState(membership)
+                    .addOutputState(outputMembership)
+                    .addCommand(MembershipContract.Commands.ModifyCordaIdentity(requiredSigners), requiredSigners)
+            builder.verify(serviceHub)
+
+            // collect signatures and finalise transaction
+            // need to compose flow sessions based on local information not what's in a possibly stale membership state
+            val observers = (outputMembership.participants - ourIdentity).map {
+               serviceHub.identityService.wellKnownPartyFromX500Name(it.nameOrNull()!!)!!
+            }
+            val observerSessions = observers.map { initiateFlow(it) }
+            val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, observers)
+            finalisedTransaction
+        }
+
+        return finalisedTransactions.firstOrNull()
+    }
+
+    private fun getAllPendingMemberships(networkId: String): List<StateAndRef<MembershipState>> {
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+                .and(QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::networkId.equal(networkId) }))
+//                .and(QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::status.`in`(listOf(MembershipStatus.PENDING)) }))
+        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states
+    }
+}
+
+@InitiatedBy(UpdatePendingMembershipsFlow::class)
+private class UpdatePendingMembershipsResponderFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
+
+    @Suspendable
+    override fun call() {
+        signAndReceiveFinalisedTransaction(session) {
+            if (it.value !is MembershipContract.Commands.ModifyCordaIdentity) {
+                throw FlowException("Only ModifyParticipants command is allowed")
             }
         }
     }

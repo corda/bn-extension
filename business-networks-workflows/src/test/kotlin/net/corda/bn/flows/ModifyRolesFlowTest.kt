@@ -84,13 +84,13 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         }
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
-        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+//        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
         restartNodeWithRotateIdentityKey(regularMember)
-        listOf(authorisedMembershipId, regularMembership.linearId).forEach { membershipId ->
-            runUpdateCordaIdentityFlow(restartedAuthorisedMember, membershipId)
+        listOf(regularMembership.linearId ).forEach { membershipId ->
+            runUpdateCordaIdentityFlow(authorisedMember, membershipId)
         }
-        runModifyRolesFlow(restartedAuthorisedMember, regularMembership.linearId, setOf(BNORole()))
-        runModifyRolesFlow(restartedAuthorisedMember, authorisedMembershipId, setOf(BNORole(), MemberRole()))
+        runModifyRolesFlow(authorisedMember, regularMembership.linearId, setOf(BNORole()))
+        runModifyRolesFlow(authorisedMember, authorisedMembershipId, setOf(BNORole(), MemberRole()))
     }
 
     @Test(timeout = 300_000)

@@ -275,12 +275,11 @@ open class MembershipContract : Contract {
             outputMembership: MembershipState
     ) = requireThat {
         "Input and output state of membership corda identity modification transaction should have same status" using (inputMembership.status == outputMembership.status)
-        "Membership business corda modification transaction can only be performed on active or suspended state" using (inputMembership.isActive() || inputMembership.isSuspended())
         "Input and output state of membership corda identity modification transaction should have same roles" using (inputMembership.roles == outputMembership.roles)
-        "Input and output state of membership corda identity modification transaction should have different Corda identity owning key" using (inputMembership.identity.cordaIdentity.owningKey != outputMembership.identity.cordaIdentity.owningKey)
+        "Input and output state of membership corda identity modification transaction should have different Corda identity owning key or different owning key for one of the participants" using (inputMembership.identity.cordaIdentity.owningKey != outputMembership.identity.cordaIdentity.owningKey
+                || inputMembership.participants.toSet() != outputMembership.participants.toSet())
         "Input and output state of membership corda identity modification transaction should have same Corda identity X500 name" using (inputMembership.identity.cordaIdentity.name == outputMembership.identity.cordaIdentity.name)
         "Input and output state of membership corda identity modification transaction should have same business identity" using (inputMembership.identity.businessIdentity == outputMembership.identity.businessIdentity)
-        "Input and output state of membership corda identity modification transaction should have same participants" using (inputMembership.participants.toSet() == outputMembership.participants.toSet())
     }
 
     /**
