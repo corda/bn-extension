@@ -45,17 +45,20 @@ class DeleteMembershipAttributeChangeRequestFlow(
             authorise(networkId, bnService) { it.canModifyRoles() }
         }
 
-        val participants = membershipChangeRequestData.participants
+        // build transaction
+        val signers = membershipChangeRequestData.participants.mapNotNull {
+            bnService.getMembership(networkId, it as Party)?.state?.data?.identity?.cordaIdentity
+        }
 
-        val requiredSigners = participants.map { it.owningKey }
+        val requiredSigners = signers.map { it.owningKey }
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membershipChangeRequest)
                 .addCommand(ChangeRequestContract.Commands.Delete(requiredSigners), requiredSigners)
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction
-        val observerSessions = (participants - ourIdentity).map { initiateFlow(it) }
-        val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, (participants - ourIdentity) as List<Party>)
+        val observerSessions = (signers - ourIdentity).map { initiateFlow(it) }
+        val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         auditLogger.info("$ourIdentity successfully archived membership changes for request with $requestId request ID")
 

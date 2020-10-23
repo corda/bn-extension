@@ -11,7 +11,6 @@ import net.corda.core.flows.StartableByRPC
 import net.corda.core.flows.InitiatedBy
 import net.corda.core.flows.FlowSession
 import net.corda.core.identity.Party
-import net.corda.core.internal.uncheckedCast
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 
@@ -59,7 +58,10 @@ class ApproveMembershipAttributeChangeFlow(
 
         // building transaction
         val outputMembershipChangeRequest = membershipChangeRequest.state.data.copy(status = ChangeRequestStatus.APPROVED, modified = serviceHub.clock.instant())
-        val signers = outputMembershipChangeRequest.participants - ourIdentity
+        val signers = (outputMembershipChangeRequest.participants - ourIdentity).mapNotNull {
+            bnService.getMembership(networkId, it as Party)?.state?.data?.identity?.cordaIdentity
+        }
+
         val requiredSigners = signers.map { it.owningKey }
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membershipChangeRequest)
@@ -69,7 +71,7 @@ class ApproveMembershipAttributeChangeFlow(
 
         // collect signatures and finalise transaction
         val observerSessions = signers.map { initiateFlow(it) }
-        val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, uncheckedCast(signers))
+        val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         auditLogger.info("$ourIdentity successfully approved membership changes for member with $membershipId membership ID")
 
