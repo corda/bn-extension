@@ -242,7 +242,7 @@ Note that when you request for new roles the changes will overwrite your existin
 This flow will create a ```ChangeRequestState``` with ```PENDING``` status.
 
 After the request creation an authorised member is able to decline the changes with using ```DeclineMembershipAttributeChangeFlow```
-or accept using ```ApproveMembershipAttributeChangeFlow``` and store them.
+or accept using ```ApproveMembershipAttributeChangeFlow```.
 If you decline the request the existing```ChangeRequestState``` will have ```DECLINED``` status.
 If you accept the request the existing```ChangeRequestState``` will have ```ACCEPTED``` status.
 There is also an option with ```DeleteMembershipAttributeChangeRequestFlow``` which marks these request as consumed to avoid stockpiling them in the database.
@@ -251,8 +251,8 @@ There is also an option with ```DeleteMembershipAttributeChangeRequestFlow``` wh
 
 - ```authorisedParty``` Identity of authorised member from whom the change request approval/rejection is requested.
 - ```networkId``` ID of the Business Network that members are part of.
-- ```businessIdentity``` The business identity change member wants to request.
-- ```roles``` The role change member wants to request.
+- ```businessIdentity``` The proposed business identity change.
+- ```roles``` The proposed role change.
 - ```notary``` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
 
 *Example*:
