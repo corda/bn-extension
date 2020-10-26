@@ -234,3 +234,26 @@ CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
             .returnValue.getOrThrow()
 }
 ```
+
+### Re-issue states affected by the change to a member's Corda Identity
+
+It may happen that a member in the network needs to re-issue the certificate to which its Corda Identity binds. In that case,
+all membership and group states which are impacted should be re-issued with the new Corda Identity. This can be done using the ```UpdateCordaIdentityFlow```. Please note that
+this flow requires the legal identity (CordaX500Name) to be the same. Furthermore, the flow can only be run from a member with sufficient permissions(can modify memberships and groups).
+
+**UpdateCordaIdentityFlow arguments**:
+
+- ```membershipId``` membershipId ID of the membership whose Corda Identity has changed
+- ```notary``` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used
+
+Example*:
+
+```kotlin
+val notary = serviceHub.networkMapCache.notaryIdentities.first())
+val updatedMember = ... // get the linear ID of the membership state associated with the Party which was updated
+
+CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
+    it.proxy.startFlow(::UpdateCordaIdentityFlow, updatedMember, notary)
+            .returnValue.getOrThrow()
+}
+```

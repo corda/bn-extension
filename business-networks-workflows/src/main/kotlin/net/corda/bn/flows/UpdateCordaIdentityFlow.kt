@@ -22,6 +22,13 @@ import net.corda.core.node.services.vault.builder
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 
+/**
+ * This flow an be initiated by an authorised member who can modify memberships and groups to update the Corda identity of a member whose certificate/key hs been re-issued.
+ * The transactions that re-issue all affected states are signed by all members who were required to sign them initially.
+ *
+ * @property membershipId ID of the membership whose Corda Identity has changed.
+ * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
+ */
 @InitiatingFlow
 @StartableByRPC
 class UpdateCordaIdentityFlow(
@@ -81,10 +88,9 @@ class UpdateCordaIdentityFlow(
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers.toList())
 
 
-        // update pending memberships and memberships which are not in a group yet only if the member being changed has permissions to activate memberships or modify groups
-        if(membership.state.data.canActivateMembership()) {
-            subFlow(UpdatePendingMembershipsFlow(membership, notary))
-        }
+        // update memberships which reference affected member
+        subFlow(UpdateImpactedMembershipsFlow(membership, notary))
+
         // update groups
         subFlow(UpdateGroupMembersIdentityFlow(membership, notary))
 
@@ -200,7 +206,7 @@ private class UpdateGroupMembersIdentityResponderFlow(private val session: FlowS
 }
 
 @InitiatingFlow
-private class UpdatePendingMembershipsFlow(
+private class UpdateImpactedMembershipsFlow(
         private val changedMembership: StateAndRef<MembershipState>,
         private val notary: Party?
 ) : MembershipManagementFlow<SignedTransaction?>() {
@@ -254,8 +260,8 @@ private class UpdatePendingMembershipsFlow(
     }
 }
 
-@InitiatedBy(UpdatePendingMembershipsFlow::class)
-private class UpdatePendingMembershipsResponderFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
+@InitiatedBy(UpdateImpactedMembershipsFlow::class)
+private class UpdateImpactedMembershipsResponderFlow(private val session: FlowSession) : MembershipManagementFlow<Unit>() {
 
     @Suspendable
     override fun call() {
