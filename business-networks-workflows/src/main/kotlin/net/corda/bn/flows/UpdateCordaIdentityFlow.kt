@@ -213,7 +213,7 @@ private class UpdatePendingMembershipsFlow(
         val newIdentity = serviceHub.identityService.wellKnownPartyFromX500Name(name)
                 ?: throw FlowException("Party with $name X500 name doesn't exist")
 
-        val finalisedTransactions = getAllPendingMemberships(networkId).filter {
+        val finalisedTransactions = getAllMemberships(networkId).filter {
             changedMembership.state.data.identity.cordaIdentity in it.state.data.participants
         }.map { membership ->
             val updatedParticipantsList = membership.state.data.participants.map {
@@ -247,10 +247,9 @@ private class UpdatePendingMembershipsFlow(
         return finalisedTransactions.firstOrNull()
     }
 
-    private fun getAllPendingMemberships(networkId: String): List<StateAndRef<MembershipState>> {
+    private fun getAllMemberships(networkId: String): List<StateAndRef<MembershipState>> {
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::networkId.equal(networkId) }))
-//                .and(QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::status.`in`(listOf(MembershipStatus.PENDING)) }))
         return serviceHub.vaultService.queryBy<MembershipState>(criteria).states
     }
 }
