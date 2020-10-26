@@ -30,15 +30,15 @@ class DeclineMembershipAttributeChangeFlow(
 ) : MembershipManagementFlow<SignedTransaction>() {
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started rejecting membership attribute changes for " +
+                "request with $requestId request ID")
+
         val bnService = serviceHub.cordaService(BNService::class.java)
 
         val membershipChangeRequest = bnService.getMembershipChangeRequest(requestId)
                 ?: throw MembershipChangeRequestNotFoundException("Could not find change request state with $requestId request ID")
 
         val membershipId = membershipChangeRequest.state.data.membershipId
-
-        auditLogger.info("$ourIdentity started rejecting membership attribute changes of " +
-                "member with $membershipId membership ID for request with $requestId request ID")
 
         bnService.getMembership(membershipId)
                 ?: throw MembershipNotFoundException("Membership state with $membershipId linear ID doesn't exist")

@@ -53,6 +53,13 @@ class RequestMembershipAttributeChangeFlow(
     @Suppress("ComplexMethod")
     @Suspendable
     override fun call() : SignedTransaction {
+        auditLogger.info(
+                "$ourIdentity started creating membership attribute changes request from $authorisedParty authorised party " +
+                 "in Business Network with $networkId network ID " +
+                 if(businessIdentity != null) "to have new $businessIdentity business identity " else "" +
+                 if(roles != null) "to have new $roles roles set" else ""
+        )
+
         val bnService = serviceHub.cordaService(BNService::class.java)
 
         if (!bnService.businessNetworkExists(networkId)) {
@@ -74,12 +81,6 @@ class RequestMembershipAttributeChangeFlow(
             if(!authorisedMembership.state.data.canModifyRoles())
                 throw MembershipAuthorisationException("$authorisedParty does not have permission to modify roles")
         }
-
-        auditLogger.info(
-                "Member with ${ourMembership.state.data.linearId} membershipID requested the following changes on its membership: " +
-                if(businessIdentity != null) "to have new $businessIdentity business identity" else "" +
-                if(roles != null) "to have new $roles roles set" else ""
-        )
 
         // send the modification request to authorised member
         val membershipId = ourMembership.state.data.linearId
