@@ -324,3 +324,37 @@ CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
             .returnValue.getOrThrow()
 }
 ```
+
+### Access control report
+
+The Business Network Operator (BNO) is able to ask for the access control report by calling ```BNOAccessControlReportFlow```
+and receives the following information in the form of an ```AccessControlReport```. Here are the attributes of
+the report file:
+- ```members``` A detailed list of the members within the network. It contains the following information:
+    - ```cordaIdentity``` The Corda identity of the member.
+    - ```businessIdentity``` The business identity of the member.
+    - ```membershipStatus``` The current status of the member's membership.
+    - ```groups``` List of all the groups member is part of.
+    - ```roles``` set of roles the member has.
+- ```groups``` A detailed list of the groups within the network. It contains the following information:
+    - ```name``` The name of the group.
+    - ```participants``` List of participants in the group.
+
+**BNOAccessControlReportFlow arguments**:
+
+- ```networkId``` ID of the Business Network, where the participants are present.
+- ```path``` The chosen path for the file to be placed.
+- ```fileName``` The chosen file name of the report file.
+
+The ```path``` and ```fileName``` are optional arguments which means that they will have a default value if you don't
+define them. In this case the files will be written to the ```user.dir``` under the name of ```bno-access-control-report```.
+
+*Example*:
+
+```kotlin
+val networkId = "MyBusinessNetwork"
+val path = ... // the absolute path where the report file should be placed
+val fileName = ... // the name of the report file
+
+subFlow(BNOAccessControlReportFlow(networkId, path, fileName))
+```
