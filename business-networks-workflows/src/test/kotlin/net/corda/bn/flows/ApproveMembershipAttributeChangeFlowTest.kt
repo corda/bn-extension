@@ -74,7 +74,7 @@ class ApproveMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val regularMember = regularMembers.first()
 
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
-        val membershipId = (runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
+        runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val (request, command) =
                 runRequestAndAcceptMembershipAttributeChangeFlow(regularMember, authorisedMember, networkId, roles = setOf(ModifyBusinessIdentityPermission())).run {
@@ -102,7 +102,7 @@ class ApproveMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val regularMember = regularMembers.first()
 
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
-        val membershipId = (runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
+        runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val (request, command) =
                 runRequestAndAcceptMembershipAttributeChangeFlow(regularMember, authorisedMember, networkId, DummyIdentity("dummy"), setOf(ModifyBusinessIdentityPermission())).run {

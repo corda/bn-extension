@@ -134,6 +134,7 @@ open class ChangeRequestContract : Contract {
         "Output state of membership change request transaction should be approved" using (outputChangeRequest.isApproved())
         "Input and output state of membership change request transaction should have same roles set" using (inputChangeRequest.proposedRoleChange == outputChangeRequest.proposedRoleChange)
         "Input and output state of membership change request transaction should have same business identity" using (inputChangeRequest.proposedBusinessIdentityChange == outputChangeRequest.proposedBusinessIdentityChange)
+        "Input and output state of membership change request transaction should have same participants" using (inputChangeRequest.participants == outputChangeRequest.participants)
     }
 
     /**
@@ -155,6 +156,7 @@ open class ChangeRequestContract : Contract {
         "Output state of membership change request transaction should be declined" using (outputChangeRequest.isDeclined())
         "Input and output state of membership change request transaction should have same roles set" using (inputChangeRequest.proposedRoleChange == outputChangeRequest.proposedRoleChange)
         "Input and output state of membership change request transaction should have same business identity" using (inputChangeRequest.proposedBusinessIdentityChange == outputChangeRequest.proposedBusinessIdentityChange)
+        "Input and output state of membership change request transaction should have same participants" using (inputChangeRequest.participants == outputChangeRequest.participants)
     }
 
     /**

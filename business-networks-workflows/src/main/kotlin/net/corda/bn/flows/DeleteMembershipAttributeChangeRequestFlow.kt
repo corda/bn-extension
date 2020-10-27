@@ -28,6 +28,9 @@ class DeleteMembershipAttributeChangeRequestFlow(
 ) : MembershipManagementFlow<SignedTransaction>() {
     @Suspendable
     override fun call(): SignedTransaction {
+        auditLogger.info("$ourIdentity started archiving membership attribute changes for " +
+                "request with $requestId request ID")
+
         val bnService = serviceHub.cordaService(BNService::class.java)
 
         val membershipChangeRequest = bnService.getMembershipChangeRequest(requestId)

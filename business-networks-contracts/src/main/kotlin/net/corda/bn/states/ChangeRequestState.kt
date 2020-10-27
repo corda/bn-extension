@@ -1,13 +1,10 @@
 package net.corda.bn.states
 
 import net.corda.bn.contracts.ChangeRequestContract
-import net.corda.bn.schemas.ChangeRequestStateSchemaV1
 import net.corda.core.contracts.BelongsToContract
-import net.corda.core.schemas.QueryableState
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
-import net.corda.core.schemas.MappedSchema
 import net.corda.core.serialization.CordaSerializable
 import java.time.Instant
 
@@ -31,16 +28,7 @@ data class ChangeRequestState(
         val modified: Instant = issued,
         override val linearId: UniqueIdentifier = UniqueIdentifier(),
         override val participants: List<AbstractParty>
-) : LinearState, QueryableState {
-    override fun generateMappedObject(schema: MappedSchema) = when (schema) {
-        is ChangeRequestStateSchemaV1 -> ChangeRequestStateSchemaV1.PersistentChangeRequestState(
-            status = status,
-            membershipId = membershipId.toString()
-        )
-        else -> throw IllegalArgumentException("Unrecognised schema $schema")
-    }
-
-    override fun supportedSchemas() = listOf(ChangeRequestStateSchemaV1)
+) : LinearState {
 
     /** Indicates whether membership is in [ChangeRequestStatus.PENDING] status. **/
     fun isPending() = status == ChangeRequestStatus.PENDING

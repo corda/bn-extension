@@ -70,7 +70,7 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val regularMember = regularMembers.first()
 
         val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
-        val membershipId = (runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
+        runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val (request, command) =
                 runRequestAndDeclineMembershipAttributeChangeFlow(regularMember, authorisedMember, networkId, roles = setOf(ModifyBusinessIdentityPermission())).run {

@@ -116,7 +116,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
 
         }
     }
-
+    
     /**
      * Queries for membership with [party] identity inside Business Network with [networkId] ID.
      *
