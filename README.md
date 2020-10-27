@@ -235,6 +235,96 @@ CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
 }
 ```
 
+### Request membership attribute changes
+
+Using the ```RequestMembershipAttributeChangeFlow``` flow a member can create requests in order to change its attributes (business identity and roles).
+Note that when you request for new roles the changes will overwrite your existing roles.
+This flow will create a ```ChangeRequestState``` with ```PENDING``` status.
+
+After the request creation an authorised member is able to decline the changes with using ```DeclineMembershipAttributeChangeFlow```
+or accept using ```ApproveMembershipAttributeChangeFlow```.
+If you decline the request the existing```ChangeRequestState``` will have ```DECLINED``` status.
+If you accept the request the existing```ChangeRequestState``` will have ```ACCEPTED``` status.
+There is also an option with ```DeleteMembershipAttributeChangeRequestFlow``` which marks these request as consumed to avoid stockpiling them in the database.
+
+**RequestMembershipAttributeChangeFlow arguments**:
+
+- ```authorisedParty``` Identity of authorised member from whom the change request approval/rejection is requested.
+- ```networkId``` ID of the Business Network that members are part of.
+- ```businessIdentity``` The proposed business identity change.
+- ```roles``` The proposed role change.
+- ```notary``` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
+
+*Example*:
+
+```kotlin
+val authorisedParty: Party = ... // get the [Party] object of the authorised Corda node
+val networkId = "MyBusinessNetwork"
+val updatedIdentity: BNIdentity = ... // the new business identity you want to associate the member with, if you don't want to modify your existing business identity, then simply skip this step
+val updatedRoles: Set<BNRole> = ... // the new roles you want to associate the member with, if you don't want to modify your existing roles, then simply skip this step
+val notary = serviceHub.networkMapCache.notaryIdentities.first()
+
+// Request creation
+CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
+    it.proxy.startFlow(::RequestMembershipAttributeChangeFlow, authorisedParty, networkId, updatedIdentity, updatedRoles, notary)
+            .returnValue.getOrThrow()
+}
+```
+
+**ApproveMembershipAttributeChangeFlow arguments**:
+
+- ```requestId``` The ID of the request which needs to be accepted.
+- ```notary``` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
+
+*Example*:
+
+```kotlin
+val requestId = ... // get the linear ID of the change request state associated with the Party which is requesting for attribute changes
+val notary = serviceHub.networkMapCache.notaryIdentities.first()
+
+// Approves request
+CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
+    it.proxy.startFlow(::ApproveMembershipAttributeChangeFlow, requestId, notary)
+            .returnValue.getOrThrow()
+}
+```
+
+**DeclineMembershipAttributeChangeFlow arguments**:
+
+- ```requestId``` The ID of the request which needs to be rejected.
+- ```notary``` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
+
+*Example*:
+
+```kotlin
+val requestId = ... // get the linear ID of the change request state associated with the Party which is requesting for attribute changes
+val notary = serviceHub.networkMapCache.notaryIdentities.first()
+
+// Declines request
+CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
+    it.proxy.startFlow(::DeclineMembershipAttributeChangeFlow, requestId, notary)
+            .returnValue.getOrThrow()
+}
+```
+
+**DeleteMembershipAttributeChangeRequestFlow arguments**:
+
+- ```requestId``` The ID of the request which needs to be consumed.
+- ```notary``` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
+
+*Example*:
+
+```kotlin
+val requestId = ... // get the linear ID of the change request state associated with the Party which is requesting for attribute changes
+val notary = serviceHub.networkMapCache.notaryIdentities.first()
+
+// Marks request as CONSUMED
+CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
+    it.proxy.startFlow(::DeleteMembershipAttributeChangeRequestFlow, requestId, notary)
+            .returnValue.getOrThrow()
+}
+```
+
 ### Re-issue states affected by the change to a member's Corda Identity
 
 It may happen that a member in the network needs to re-issue the certificate to which its Corda Identity binds. In that case,
@@ -246,7 +336,7 @@ this flow requires the legal identity (CordaX500Name) to be the same. Furthermor
 - ```membershipId``` membershipId ID of the membership whose Corda Identity has changed
 - ```notary``` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used
 
-Example*:
+*Example*:
 
 ```kotlin
 val notary = serviceHub.networkMapCache.notaryIdentities.first())
@@ -254,6 +344,6 @@ val updatedMember = ... // get the linear ID of the membership state associated 
 
 CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
     it.proxy.startFlow(::UpdateCordaIdentityFlow, updatedMember, notary)
-            .returnValue.getOrThrow()
+           .returnValue.getOrThrow()
 }
 ```

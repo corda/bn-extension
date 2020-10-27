@@ -35,5 +35,10 @@ enum class BNRequestType {
     /**
      * Pending membership request.
      */
-    PENDING_MEMBERSHIP
+    PENDING_MEMBERSHIP,
+
+    /**
+     * Pending membership attribute change request.
+     */
+    PENDING_ATTRIBUTE_CHANGE_REQUEST
 }
