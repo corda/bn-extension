@@ -332,7 +332,7 @@ and receives the following information in the form of an ```AccessControlReport`
 the report file:
 - ```members``` A detailed list of the members within the network. It contains the following information:
     - ```cordaIdentity``` The Corda identity of the member.
-    - ```businessIdentity``` The business identity if the member.
+    - ```businessIdentity``` The business identity of the member.
     - ```membershipStatus``` The current status of the member's membership.
     - ```groups``` List of all the groups member is part of.
     - ```roles``` set of roles the member has.
@@ -353,7 +353,7 @@ define them. In this case the files will be written to the ```user.dir``` under 
 
 ```kotlin
 val networkId = "MyBusinessNetwork"
-val path = ... // the path where the report file should be placed
+val path = ... // the absolute path where the report file should be placed
 val fileName = ... // the name of the report file
 
 subFlow(BNOAccessControlReportFlow(networkId, path, fileName))
