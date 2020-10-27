@@ -355,7 +355,6 @@ define them. In this case the files will be written to the ```user.dir``` under 
 val networkId = "MyBusinessNetwork"
 val path = ... // the path where the report file should be placed
 val fileName = ... // the name of the report file
-val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
-subFlow(BNOAccessControlReportFlow(networkId, path, fileName, notary))
+subFlow(BNOAccessControlReportFlow(networkId, path, fileName))
 ```
