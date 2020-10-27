@@ -23,7 +23,7 @@ import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 
 /**
- * This flow an be initiated by an authorised member who can modify memberships and groups to update the Corda identity of a member whose certificate/key hs been re-issued.
+ * This flow an be initiated by an authorised member who can modify groups to update the Corda identity of a member whose certificate/key has been re-issued.
  * The transactions that re-issue all affected states are signed by all members who were required to sign them initially.
  *
  * @property membershipId ID of the membership whose Corda Identity has changed.
@@ -41,12 +41,13 @@ class UpdateCordaIdentityFlow(
         auditLogger.info("$ourIdentity started updating Corda identity of member with $membershipId membership ID")
 
         val membership = getMembership(membershipId)
-        val name = membership.state.data.identity.cordaIdentity.name
+        val (networkId, name) = membership.state.data.run {
+            networkId to identity.cordaIdentity.name
+        }
         val newIdentity = serviceHub.identityService.wellKnownPartyFromX500Name(name)
                 ?: throw FlowException("Party with $name X500 name doesn't exist")
 
         // check whether party is authorised to initiate flow
-        val networkId = membership.state.data.networkId
         val flowName = javaClass.name
         getMembership(networkId, ourIdentity).apply {
             if (!state.data.isActive()) {
@@ -57,14 +58,16 @@ class UpdateCordaIdentityFlow(
             }
         }
 
-        val updatedParticipantsList = membership.state.data.participants.map() {
+        val updatedParticipantsList = membership.state.data.participants.map {
             if (it.owningKey == membership.state.data.identity.cordaIdentity.owningKey) {
                 newIdentity
-            } else it
+            } else {
+                it
+            }
         }
+
         val outputMembership = membership.state.data.run {
-            copy(identity = identity.copy(cordaIdentity = newIdentity), modified = serviceHub.clock.instant(),
-                    participants = updatedParticipantsList)
+            copy(identity = identity.copy(cordaIdentity = newIdentity),modified = serviceHub.clock.instant(), participants = updatedParticipantsList)
         }
 
         // fetch signers
@@ -86,7 +89,6 @@ class UpdateCordaIdentityFlow(
         // collect signatures and finalise transaction
         val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers.toList())
-
 
         // update memberships which reference affected member
         subFlow(UpdateImpactedMembershipsFlow(membership, notary))
@@ -134,6 +136,12 @@ class UpdateCordaIdentityResponderFlow(private val session: FlowSession) : Membe
     }
 }
 
+/**
+ * This flow is called by the [UpdateCordaIdentityFlow] to update the groups states with the new Corda identity of the targeted member.
+ *
+ * @property changedMembership The state of the member whose certificate or keys have been re-newed.
+ * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
+ */
 @InitiatingFlow
 private class UpdateGroupMembersIdentityFlow(
         private val changedMembership: StateAndRef<MembershipState>,
@@ -142,8 +150,9 @@ private class UpdateGroupMembersIdentityFlow(
 
     @Suspendable
     override fun call(): SignedTransaction? {
-        val networkId = changedMembership.state.data.networkId
-        val name = changedMembership.state.data.identity.cordaIdentity.name
+        val (networkId, name) = changedMembership.state.data.run {
+            networkId to identity.cordaIdentity.name
+        }
         val newIdentity = serviceHub.identityService.wellKnownPartyFromX500Name(name)
                 ?: throw FlowException("Party with $name X500 name doesn't exist")
         val finalisedTransactions = getAllBusinessNetworkGroups(networkId).filter {
@@ -205,6 +214,12 @@ private class UpdateGroupMembersIdentityResponderFlow(private val session: FlowS
     }
 }
 
+/**
+ * This flow is called by the [UpdateCordaIdentityFlow] to update all membership states which reference a members whose Corda Identity has changed.
+ *
+ * @property changedMembership The state of the member whose certificate or keys have been re-newed.
+ * @property notary Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used.
+ */
 @InitiatingFlow
 private class UpdateImpactedMembershipsFlow(
         private val changedMembership: StateAndRef<MembershipState>,
@@ -214,8 +229,9 @@ private class UpdateImpactedMembershipsFlow(
     @Suppress("UNCHECKED_CAST")
     @Suspendable
     override fun call(): SignedTransaction? {
-        val networkId = changedMembership.state.data.networkId
-        val name = changedMembership.state.data.identity.cordaIdentity.name
+        val (networkId, name) = changedMembership.state.data.run {
+            networkId to identity.cordaIdentity.name
+        }
         val newIdentity = serviceHub.identityService.wellKnownPartyFromX500Name(name)
                 ?: throw FlowException("Party with $name X500 name doesn't exist")
 
@@ -225,7 +241,9 @@ private class UpdateImpactedMembershipsFlow(
             val updatedParticipantsList = membership.state.data.participants.map {
                 if (it.owningKey == changedMembership.state.data.identity.cordaIdentity.owningKey) {
                     newIdentity
-                } else it
+                } else {
+                    it
+                }
             }
 
             val outputMembership = membership.state.data.run {
@@ -243,7 +261,7 @@ private class UpdateImpactedMembershipsFlow(
             // collect signatures and finalise transaction
             // need to compose flow sessions based on local information not what's in a possibly stale membership state
             val observers = (outputMembership.participants - ourIdentity).map {
-               serviceHub.identityService.wellKnownPartyFromX500Name(it.nameOrNull()!!)!!
+               serviceHub.identityService.wellKnownPartyFromX500Name((it as Party).name)!!
             }
             val observerSessions = observers.map { initiateFlow(it) }
             val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, observers)
@@ -267,7 +285,7 @@ private class UpdateImpactedMembershipsResponderFlow(private val session: FlowSe
     override fun call() {
         signAndReceiveFinalisedTransaction(session) {
             if (it.value !is MembershipContract.Commands.ModifyCordaIdentity) {
-                throw FlowException("Only ModifyParticipants command is allowed")
+                throw FlowException("Only ModifyCordaIdentity command is allowed")
             }
         }
     }

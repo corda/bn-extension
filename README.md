@@ -239,7 +239,7 @@ CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
 
 It may happen that a member in the network needs to re-issue the certificate to which its Corda Identity binds. In that case,
 all membership and group states which are impacted should be re-issued with the new Corda Identity. This can be done using the ```UpdateCordaIdentityFlow```. Please note that
-this flow requires the legal identity (CordaX500Name) to be the same. Furthermore, the flow can only be run from a member with sufficient permissions(can modify memberships and groups).
+this flow requires the legal identity (CordaX500Name) to be the same. Furthermore, the flow can only be run from a member with sufficient permissions(can modify groups).
 
 **UpdateCordaIdentityFlow arguments**:
 

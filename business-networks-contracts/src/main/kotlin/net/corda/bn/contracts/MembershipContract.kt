@@ -70,6 +70,12 @@ open class MembershipContract : Contract {
          */
         class ModifyRoles(requiredSigners: List<PublicKey>, val initiator: Party) : Commands(requiredSigners)
 
+        /**
+         * Command responsible for the update of Corda identity (public key) of members affected by a certificate or key
+         * rotation.
+         *
+         * @param requiredSigners List of all required public keys of command's signers.
+         */
         class ModifyCordaIdentity(requiredSigners: List<PublicKey>) : Commands(requiredSigners)
 
         /**
@@ -268,6 +274,15 @@ open class MembershipContract : Contract {
         }
     }
 
+    /**
+     * Contract verification check specific to [Commands.ModifyCordaIdentity] command. Each contract extending [MembershipContract] can override
+     * this method to implement their own custo created command verification logic.
+     *
+     * @param tx Ledger transaction over which contract performs verification.
+     * @param command Command with parties data about membership role modification command.
+     * @param inputMembership Input [MembershipState] of the transaction.
+     * @param outputMembership Output [MembershipState] of the transaction.
+     */
     open fun verifyModifyCordaIdentity(
             tx: LedgerTransaction,
             command: CommandWithParties<Commands>,
