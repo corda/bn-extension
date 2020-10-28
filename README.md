@@ -30,10 +30,7 @@ val myIdentity: BNIdentity = createBusinessNetworkIdentity() // mock method that
 val groupId = UniqueIdentifier()
 val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::CreateBusinessNetworkFlow, "MyBusinessNetwork", myIdentity, groupId, "Group 1", notary)
-            .returnValue.getOrThrow()
-}
+subFlow(CreateBusinessNetworkFlow("MyBusinessNetwork", myIdentity, groupId, "Group 1", notary))
 ```
 
 ### On-board a new member
@@ -57,10 +54,7 @@ val networkId = "MyBusinessNetwork"
 val bno: Party = ... // get the [Party] object of the Corda node acting as a BNO for the business network represented by [networkId]
 val notary = serviceHub.networkMapCache.notaryIdentities.first())
 
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::RequestMembershipFlow, bno, networkId, myIdentity, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(RequestMembershipFlow(bno, networkId, myIdentity, notary))
 ```
 
 To finalise the on-boarding process, an authorised party needs to run the ```ActivateMembershipFlow```. This will update the targeted membership status from *PENDING* to *ACTIVE* after
@@ -80,20 +74,49 @@ val newMemberPartyObject = ... // get the [Party] object of the member whose mem
 val membershipId = bnService.getMembership("MyBusinessNetwork", newMemberPartyObject)
 val groupName = "Group 1"
 val groupId = ... // identifier of the group which the member will be assigned to
-val notary = serviceHub.networkMapCache.notaryIdentities.first())
+val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::ActivateMembershipFlow, membershipId, notary)
-            .returnValue.getOrThrow()
+subFlow(ActivateMembershipFlow(membershipId, notary))
 
-    // add newly activated member to a membership list
-    val newParticipantsList = bnService.getBusinessNetworkGroup(groupId).state.data.participants.map {
-        BNService.getMembership(networkId, it)!!.state.data.linearId
-    } + membershipId
+// add newly activated member to a membership list
+val newParticipantsList = bnService.getBusinessNetworkGroup(groupId).state.data.participants.map {
+    BNService.getMembership(networkId, it)!!.state.data.linearId
+} + membershipId
 
-    it.proxy.startFlow(::ModifyGroupFlow, groupId, groupName, newParticipantsList, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(ModifyGroupFlow(groupId, groupName, newParticipantsList, notary))
+```
+
+Onboarding new member can also be done without prior membership request. Authorised party needs to run `OnboardMembershipFlow` 
+to **directly** issue a new membership with ACTIVE status. After onboarding, authorised member also needs to follow-up with a 
+group assignment by running the `ModifyGroupFlow`.
+
+**OnboardMembershipFlow arguments**:
+
+- `networkId` ID of the Business Network that member is onboarded to
+- `onboardedParty` Identity of an onboarded member
+- `businessIdentity` Custom business identity to be given to the onboarded membership
+- `notary` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used
+
+*Example*:
+
+```kotlin
+val bnService = serviceHub.cordaService(BNService::class.java)
+val networkId = "MyBusinessNetwork"
+val onboardedParty = ... // get the [Party] object of the Corda node acting as an onboarded member
+val businessIdentity: BNIdentity = createBusinessNetworkIdentity() // create an instance of a class implementing [BNIdentity]
+val notary = serviceHub.networkMapCache.notaryIdentities.first()
+val groupId = ... // identifier of the group which the member will be assigned to
+val groupName = "Group 1"
+
+subFlow(OnboardMembershipFlow(networkId, onboardedParty, businessIdentity, notary))
+
+// add newly activated member to a membership list
+val membershipId = bnService.getMembership(networkId, onboardedParty)!!.state.data.linearId
+val newParticipantsList = bnService.getBusinessNetworkGroup(groupId).state.data.participants.map {
+    BNService.getMembership(networkId, it)!!.state.data.linearId
+} + membershipId
+
+subFlow(ModifyGroupFlow(groupId, groupName, newParticipantsList, notary))
 ```
 
 ### Amend a membership
@@ -120,10 +143,7 @@ val membership = bnService.getMembership(networkId, partyToBeUpdated)
 val updatedIdentity: BNIdentity = updateBusinessIdentity(membership.state.data.identity) // mock method that updates the business identity in some meaningful way
 val notary = serviceHub.networkMapCache.notaryIdentities.first())
 
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::ModifyBusinessIdentityFlow, membership.state.data.linearId, updatedIdentity, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(ModifyBusinessIdentityFlow(membership.state.data.linearId, updatedIdentity, notary))
 ```
 
 Updating a member's roles and permissions in the business network is done in a similar fashion by using the ```ModifyRolesFlow```. Depending on the proposed changes, the updated member may become
@@ -146,10 +166,7 @@ val partyToBeUpdated = ... // get the [Party] object of the member being updated
 val membershipId = bnService.getMembership(networkId, partyToBeUpdated).state.data.linearId
 val notary = serviceHub.networkMapCache.notaryIdentities.first())
 
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::ModifyRolesFlow, membershipId, roles, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(ModifyRolesFlow(membershipId, roles, notary))
 ```
 
 To manage the membership lists or groups, one of the authorised members of the network can use ```CreateGroupFlow```, ```DeleteGroupFlow``` and ```ModifyGroupFlow```.
@@ -169,10 +186,8 @@ val notary = serviceHub.networkMapCache.notaryIdentities.first())
 val myNetworkId = "MyBusinessNetwork"
 val myGroupId = UniqueIdentifier()
 val groupName = "Group 1"
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::CreateGroupFlow, myNetworkId, myGroupId, groupName, emptySet(), notary)
-            .returnValue.getOrThrow()
-}
+
+subFlow(CreateGroupFlow(myNetworkId, myGroupId, groupName, emptySet(), notary))
 ```
 
 **DeleteGroupFlow arguments**:
@@ -200,10 +215,7 @@ val participantsList = bnService.getBusinessNetworkGroup(bnGroupId).state.data.p
 val newParticipantsList = removeMember(someMember, participantsList) // mock method that removes a member from the group
 val notary = serviceHub.networkMapCache.notaryIdentities.first())
 
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::ModifyGroupFlow, bnGroupId, bnGroupName, newParticipantsList, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(ModifyGroupFlow(bnGroupId, bnGroupName, newParticipantsList, notary))
 ```
 
 ### Suspend or revoke a membership
@@ -222,17 +234,12 @@ and and a new one will have to be requested and activated in order for the membe
 val notary = serviceHub.networkMapCache.notaryIdentities.first())
 val memberToBeSuspended = ... // get the linear ID of the membership state associated with the Party which is being suspended from the network
 val memberToBeRevoked = ... // get the linear ID of the membership state associated with the Party which is being removed from the network
+
 // Revocation
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::RevokeMembershipFlow, memberToBeRevoked, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(RevokeMembershipFlow(memberToBeRevoked, notary))
 
 // Suspension
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::RevokeMembershipFlow, memberToBeSuspended, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(SuspendMembershipFlow(memberToBeSuspended, notary))
 ```
 
 ### Request membership attribute changes
@@ -265,10 +272,7 @@ val updatedRoles: Set<BNRole> = ... // the new roles you want to associate the m
 val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
 // Request creation
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::RequestMembershipAttributeChangeFlow, authorisedParty, networkId, updatedIdentity, updatedRoles, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(authorisedParty, networkId, updatedIdentity, updatedRoles, notary)
 ```
 
 **ApproveMembershipAttributeChangeFlow arguments**:
@@ -283,10 +287,7 @@ val requestId = ... // get the linear ID of the change request state associated 
 val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
 // Approves request
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::ApproveMembershipAttributeChangeFlow, requestId, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(ApproveMembershipAttributeChangeFlow(requestId, notary))
 ```
 
 **DeclineMembershipAttributeChangeFlow arguments**:
@@ -301,10 +302,7 @@ val requestId = ... // get the linear ID of the change request state associated 
 val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
 // Declines request
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::DeclineMembershipAttributeChangeFlow, requestId, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(DeclineMembershipAttributeChangeFlow(requestId, notary))
 ```
 
 **DeleteMembershipAttributeChangeRequestFlow arguments**:
@@ -319,11 +317,99 @@ val requestId = ... // get the linear ID of the change request state associated 
 val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
 // Marks request as CONSUMED
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::DeleteMembershipAttributeChangeRequestFlow, requestId, notary)
-            .returnValue.getOrThrow()
-}
+subFlow(DeleteMembershipAttributeChangeRequestFlow(requestId, notary))
 ```
+
+### Composite Flows
+
+We enhance existing Business Network management flow suite to make Business Network Operator's operations easier 
+and more practical than before by introduction of **Composite Flows**. These are flows that call primitive Business Network 
+management flows (ones under `net.corda.bn.flows` package). All of them are contained inside `net.corda.bn.flows.composite` 
+package.
+
+There are 2 flows released: 
+- `BatchActivateMembershipFlow` which activates set of pending membership requests and adds them to specified groups.
+- `BatchOnboardMembershipFlow` which onboards set of new memberships and adds them to specific groups.
+
+**BatchActivateMembershipFlow arguments**:
+
+- `memberships` Set of memberships' `ActivationInfo`s
+- `defaultGroupId` ID of the group where members are added if the specific group ID is not provided in their `ActivationInfo`
+- `notary` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used
+
+*Example*:
+
+```kotlin
+val (membershipId1, membershipId2) = ... // fetch pending memberships using [BNService]
+val groupForMember1 = ... // get ID of the group where member1 will be added after activation
+val memberships = setOf(
+    ActivationInfo(membershipId = membershipId1, groupId = groupForMember1),
+    ActivationInfo(membershipId = membershipId2, groupId = null)
+)
+val defaultGroupId = ... // get ID of the group where activated members will be added by default
+val notary = serviceHub.networkMapCache.notaryIdentities.first()
+
+subFlow(BatchActivateMembershipFlow(memberships, defaultGroupId, notary))
+```
+
+**BatchOnboardMembershipFlow arguments**:
+
+- `networkId` ID of the Business Network where members are onboarded
+- `onboardedParties` Set of parties to be onboarded and group where to be added after onboarding
+- `defaultGroupId` ID of the group where members are added if the specific group ID is not provided in their `OnboardingInfo`
+- `notary`  Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used
+
+*Example*:
+
+```kotlin
+val networkId = "MyBusinessNetwork"
+val (party1, party2) = ... // get parties to be onboarded to the Business Network
+val groupForParty1 = ... // get ID of the group where party1 will be added after onboarding
+val businessIdentity1 = createBusinessNetworkIdentity() // mock method that creates an instance of a class implementing [BNIdentity]
+val onboardedParties = setOf(
+    OnboardingInfo(party = party1, businessIdentity = businessIdentity1, groupId = groupForParty1),
+    OnboardingInfo(party = party2, businessIdentity = null, groupId = null)
+)
+val defaultGroupId = ... // get ID of the group where activated members will be added by default
+val notary = serviceHub.networkMapCache.notaryIdentities.first()
+
+subFlow(BatchOnboardMembershipFlow(networkId, onboardedParties, defaultGroupId, notary))
+```
+
+### Access control report
+
+The Business Network Operator (BNO) is able to ask for the access control report by calling ```BNOAccessControlReportFlow```
+and receives the following information in the form of an ```AccessControlReport```. Here are the attributes of
+the report file:
+- ```members``` A detailed list of the members within the network. It contains the following information:
+    - ```cordaIdentity``` The Corda identity of the member.
+    - ```businessIdentity``` The business identity of the member.
+    - ```membershipStatus``` The current status of the member's membership.
+    - ```groups``` List of all the groups member is part of.
+    - ```roles``` set of roles the member has.
+- ```groups``` A detailed list of the groups within the network. It contains the following information:
+    - ```name``` The name of the group.
+    - ```participants``` List of participants in the group.
+
+**BNOAccessControlReportFlow arguments**:
+
+- ```networkId``` ID of the Business Network, where the participants are present.
+- ```path``` The chosen path for the file to be placed.
+- ```fileName``` The chosen file name of the report file.
+
+The ```path``` and ```fileName``` are optional arguments which means that they will have a default value if you don't
+define them. In this case the files will be written to the ```user.dir``` under the name of ```bno-access-control-report```.
+
+*Example*:
+
+```kotlin
+val networkId = "MyBusinessNetwork"
+val path = ... // the absolute path where the report file should be placed
+val fileName = ... // the name of the report file
+
+subFlow(BNOAccessControlReportFlow(networkId, path, fileName))
+```
+
 
 ### Re-issue states affected by the change to a member's Corda Identity
 
@@ -342,8 +428,5 @@ this flow requires the legal identity (CordaX500Name) to be the same. Furthermor
 val notary = serviceHub.networkMapCache.notaryIdentities.first())
 val updatedMember = ... // get the linear ID of the membership state associated with the Party which was updated
 
-CordaRPCClient(rpcAddress).start(user.userName, user.password).use {
-    it.proxy.startFlow(::UpdateCordaIdentityFlow, updatedMember, notary)
-           .returnValue.getOrThrow()
-}
+subflow(UpdateCordaIdentityFlow(updatedMember, notary)
 ```
