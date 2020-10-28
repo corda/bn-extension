@@ -89,11 +89,11 @@ class MembershipContractTest {
 
             val input = membershipState
             transaction {
-                val output = input.copy(identity = MembershipIdentity(bnoIdentity))
+                val output = input.copy(identity = MembershipIdentity(bnoIdentity), status = MembershipStatus.ACTIVE)
                 input(MembershipContract.CONTRACT_NAME, input)
                 output(MembershipContract.CONTRACT_NAME, output)
                 command(listOf(bnoIdentity.owningKey), MembershipContract.Commands.Activate(listOf(bnoIdentity.owningKey)))
-                this `fails with` "Input and output state should have same Corda identity"
+                this `fails with` "Input and output state of membership activation transaction should have same Corda identity"
             }
             transaction {
                 val output = input.copy(networkId = "other-network-id")
