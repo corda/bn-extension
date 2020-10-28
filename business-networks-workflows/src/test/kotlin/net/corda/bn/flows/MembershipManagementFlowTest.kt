@@ -22,6 +22,7 @@ import net.corda.node.services.keys.KeyManagementServiceInternal
 import net.corda.nodeapi.internal.DEV_CA_KEY_STORE_PASS
 import net.corda.nodeapi.internal.crypto.X509Utilities
 import net.corda.nodeapi.internal.storeLegalIdentity
+import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNodeParameters
 import net.corda.testing.node.internal.TestCordappImpl
@@ -47,7 +48,7 @@ abstract class MembershipManagementFlowTest(
         mockNetwork = InternalMockNetwork(cordappsForAllNodes = listOf(
                 TestCordappImpl(scanPackage = "net.corda.bn.contracts", config = emptyMap()),
                 TestCordappImpl(scanPackage = "net.corda.bn.flows", config = emptyMap())
-        ))
+        ), initialNetworkParameters = testNetworkParameters(minimumPlatformVersion = 9))
 
         authorisedMembers = (0 until numberOfAuthorisedMembers).mapIndexed { idx, _ ->
             createNode(CordaX500Name.parse("O=BNO_$idx,L=New York,C=US"))
@@ -239,52 +240,52 @@ abstract class MembershipManagementFlowTest(
 
     @Suppress("LongParameterList")
     protected fun runRequestMembershipAttributeChangeFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             authorisedParty: Party,
             networkId: String,
             businessIdentity: BNIdentity? = null,
             roles: Set<BNRole>? = null,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(RequestMembershipAttributeChangeFlow(authorisedParty, networkId, businessIdentity, roles, notary))
+        val future = initiator.services.startFlow(RequestMembershipAttributeChangeFlow(authorisedParty, networkId, businessIdentity, roles, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     protected fun runAcceptMembershipAttributeChangeFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             requestId: UniqueIdentifier,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(ApproveMembershipAttributeChangeFlow(requestId, notary))
+        val future = initiator.services.startFlow(ApproveMembershipAttributeChangeFlow(requestId, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     protected fun runDeclineMembershipAttributeChangeFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             requestId: UniqueIdentifier,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(DeclineMembershipAttributeChangeFlow(requestId, notary))
+        val future = initiator.services.startFlow(DeclineMembershipAttributeChangeFlow(requestId, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     protected fun runDeleteMembershipAttributeChangeRequestFlow(
-            initiator: StartedMockNode,
+            initiator: TestStartedNode,
             requestId: UniqueIdentifier,
             notary: Party? = null
     ): SignedTransaction {
-        val future = initiator.startFlow(DeleteMembershipAttributeChangeRequestFlow(requestId, notary))
+        val future = initiator.services.startFlow(DeleteMembershipAttributeChangeRequestFlow(requestId, notary))
         mockNetwork.runNetwork()
-        return future.getOrThrow()
+        return future.resultFuture.getOrThrow()
     }
 
     @Suppress("LongParameterList")
     protected fun runRequestAndAcceptMembershipAttributeChangeFlow(
-            initiator: StartedMockNode,
-            authorisedNode: StartedMockNode,
+            initiator: TestStartedNode,
+            authorisedNode: TestStartedNode,
             networkId: String,
             businessIdentity: BNIdentity? = null,
             roles: Set<BNRole>? = null,
@@ -297,8 +298,8 @@ abstract class MembershipManagementFlowTest(
 
     @Suppress("LongParameterList")
     protected fun runRequestAndDeclineMembershipAttributeChangeFlow(
-            initiator: StartedMockNode,
-            authorisedNode: StartedMockNode,
+            initiator: TestStartedNode,
+            authorisedNode: TestStartedNode,
             networkId: String,
             businessIdentity: BNIdentity? = null,
             roles: Set<BNRole>? = null,
@@ -308,6 +309,7 @@ abstract class MembershipManagementFlowTest(
                 (runRequestMembershipAttributeChangeFlow(initiator, authorisedNode.identity(), networkId, businessIdentity, roles, notary).tx.outputStates.single() as ChangeRequestState).linearId
         return runDeclineMembershipAttributeChangeFlow(authorisedNode, requestId)
     }
+
 
     private fun addMemberToInitialGroup(initiator: TestStartedNode, networkId: String, membership: MembershipState, notary: Party?) {    
         val bnService = initiator.services.cordaService(BNService::class.java)
@@ -355,13 +357,13 @@ abstract class MembershipManagementFlowTest(
         certStore.storeLegalIdentity(X509Utilities.NODE_IDENTITY_KEY_ALIAS)
         return certStore[oldIdentityAlias].publicKey to oldIdentityAlias
     }
-      
-    protected fun getRequestFromVault(node: StartedMockNode, requestId: UniqueIdentifier): ChangeRequestState {
+
+    protected fun getRequestFromVault(node: TestStartedNode, requestId: UniqueIdentifier): ChangeRequestState {
         val bnService = node.services.cordaService(BNService::class.java)
         return bnService.getMembershipChangeRequest(requestId)!!.state.data
     }
 
-    protected fun hasRequestInVault(node: StartedMockNode, requestId: UniqueIdentifier): Boolean {
+    protected fun hasRequestInVault(node: TestStartedNode, requestId: UniqueIdentifier): Boolean {
         val bnService = node.services.cordaService(BNService::class.java)
         if(bnService.getMembershipChangeRequest(requestId) != null) return true
         return false
