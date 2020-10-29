@@ -4,6 +4,7 @@ import net.corda.bn.contracts.MembershipContract
 import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.BNORole
 import net.corda.bn.states.BNRole
+import net.corda.bn.states.MemberRole
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
 import org.junit.Test
@@ -59,7 +60,7 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val regularMember = regularMembers.first()
 
         val lesserBNORole = BNRole("AlmostBNO",
-                  setOf(AdminPermission.CAN_ACTIVATE_MEMBERSHIP,
+                setOf(AdminPermission.CAN_ACTIVATE_MEMBERSHIP,
                         AdminPermission.CAN_MODIFY_BUSINESS_IDENTITY,
                         AdminPermission.CAN_MODIFY_GROUPS,
                         AdminPermission.CAN_REVOKE_MEMBERSHIP,
@@ -73,6 +74,24 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         assertFailsWith<InvalidBusinessNetworkStateException> { runModifyRolesFlow(authorisedMember, authorisedMembership.linearId, setOf(lesserBNORole)) }
     }
 
+    @Test(timeout = 300_000)
+    fun `modify roles flow should work after certificate renewal`() {
+        val authorisedMember = authorisedMembers.first()
+        val regularMember = regularMembers.first()
+
+        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+            networkId to linearId
+        }
+        val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
+
+        val restartedAuthorisedMember = restartNodeWithRotateIdentityKey(authorisedMember)
+        restartNodeWithRotateIdentityKey(regularMember)
+        listOf(authorisedMembershipId, regularMembership.linearId).forEach { membershipId ->
+            runUpdateCordaIdentityFlow(restartedAuthorisedMember, membershipId)
+        }
+        runModifyRolesFlow(restartedAuthorisedMember, authorisedMembershipId, setOf(BNORole(), MemberRole()))
+        runModifyRolesFlow(restartedAuthorisedMember, regularMembership.linearId, setOf(BNORole()))
+    }
 
     @Test(timeout = 300_000)
     fun `modify roles flow happy path`() {

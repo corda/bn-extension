@@ -375,6 +375,7 @@ val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
 subFlow(BatchOnboardMembershipFlow(networkId, onboardedParties, defaultGroupId, notary))
 ```
+
 ### Access control report
 
 The Business Network Operator (BNO) is able to ask for the access control report by calling ```BNOAccessControlReportFlow```
@@ -407,4 +408,28 @@ val path = ... // the absolute path where the report file should be placed
 val fileName = ... // the name of the report file
 
 subFlow(BNOAccessControlReportFlow(networkId, path, fileName))
+```
+
+
+### Re-issue states affected by the change to a member's Corda Identity
+
+It may happen that a member in the network needs to re-issue the certificate to which its Corda Identity binds. In that case,
+all membership and group states which are impacted should be re-issued with the new Corda Identity. This can be done using the ```UpdateCordaIdentityFlow```. Please note that
+this flow requires the legal identity (CordaX500Name) to be the same. Furthermore, the flow can only be run from a member with sufficient permissions(can modify groups).
+
+**If several members of the network have their certificates rotated, it's important to start the identity update process with the authorised members as they are required
+to sign all other identity update transactions.**
+
+**UpdateCordaIdentityFlow arguments**:
+
+- ```membershipId``` membershipId ID of the membership whose Corda Identity has changed
+- ```notary``` Identity of the notary to be used for transactions notarisation. If not specified, first one from the whitelist will be used
+
+*Example*:
+
+```kotlin
+val notary = serviceHub.networkMapCache.notaryIdentities.first())
+val updatedMember = ... // get the linear ID of the membership state associated with the Party which was updated
+
+subflow(UpdateCordaIdentityFlow(updatedMember, notary)
 ```
