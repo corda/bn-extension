@@ -417,6 +417,9 @@ It may happen that a member in the network needs to re-issue the certificate to 
 all membership and group states which are impacted should be re-issued with the new Corda Identity. This can be done using the ```UpdateCordaIdentityFlow```. Please note that
 this flow requires the legal identity (CordaX500Name) to be the same. Furthermore, the flow can only be run from a member with sufficient permissions(can modify groups).
 
+**If several members of the network have their certificates rotated, it's important to start the identity update process with the authorised members as they are required
+to sign all other identity update transactions.**
+
 **UpdateCordaIdentityFlow arguments**:
 
 - ```membershipId``` membershipId ID of the membership whose Corda Identity has changed

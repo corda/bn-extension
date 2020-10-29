@@ -43,7 +43,7 @@ class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuth
         listOf(firstRegularMember, secondRegularMember).forEach { member ->
             restartNodeWithRotateIdentityKey(member)
         }
-        (membershipIds + authorisedMembershipId).forEach { membershipId ->
+        (listOf(authorisedMembershipId) + membershipIds).forEach { membershipId ->
             runUpdateCordaIdentityFlow(restartedAuthorisedMember, membershipId)
         }
 
