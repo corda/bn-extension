@@ -6,6 +6,30 @@ only know about those in their group).
 
 In a business network, there is at least one *authorised member*. This member has sufficient permissions to execute management operations over the network and its members.
 
+## Installation
+
+Add the `business-networks-contracts` dependency in your "contracts" (and states) cordapp module:
+
+```groovy
+dependencies {
+    //...
+    cordapp("net.corda.bn:business-networks-contracts:$corda_bn_extension_version")
+    //...
+}
+``` 
+
+... and the `business-networks-workflows` dependency in your "workflows" cordapp module:
+
+```groovy
+dependencies {
+    //...
+	cordapp("net.corda.bn:business-networks-workflows:$corda_bn_extension_version")
+    //...
+}
+```
+
+Remember to add both dependencies in your Cordform (i.e. `deployNodes`) task.
+
 ## Creating and managing a business network
 
 BNE provides a set of workflows that allows a user to start a business network, on-board members and assign them to membership lists or groups. The flows can also be used to update the information
