@@ -39,7 +39,7 @@ data class MembershipState(
     override fun generateMappedObject(schema: MappedSchema) = when (schema) {
         is MembershipStateSchemaV1 -> MembershipStateSchemaV1.PersistentMembershipState(
                 cordaIdentity = identity.cordaIdentity,
-                businessIdentity = identity.businessIdentity.toString(),
+                businessIdentity = identity.businessIdentity?.toString(),
                 networkId = networkId,
                 status = status,
                 issuer = issuer,

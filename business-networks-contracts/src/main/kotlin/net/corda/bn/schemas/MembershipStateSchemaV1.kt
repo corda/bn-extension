@@ -31,8 +31,8 @@ object MembershipStateSchemaV1 : MappedSchema(schemaFamily = MembershipState::cl
             @Column(name = "corda_identity", nullable = false)
             val cordaIdentity: Party,
             /** String representation of custom [BNIdentity] */
-            @Column(name = "business_identity", nullable = false)
-            val businessIdentity: String,
+            @Column(name = "business_identity")
+            val businessIdentity: String?,
             @Column(name = "network_id", nullable = false)
             val networkId: String,
             @Column(name = "status", nullable = false)
