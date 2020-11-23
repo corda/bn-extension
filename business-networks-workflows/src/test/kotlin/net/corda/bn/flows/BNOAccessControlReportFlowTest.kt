@@ -59,9 +59,9 @@ class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuth
         val networkId = UniqueIdentifier()
 
         runCreateBusinessNetworkFlow(authorisedMember, networkId = networkId)
-
+        val groupId = UniqueIdentifier()
         val membership = runRequestAndActivateMembershipFlows(firstRegularMember, authorisedMember, networkId.toString()).tx.outputStates.single() as MembershipState
-        runCreateGroupFlow(authorisedMember, networkId.toString(), UniqueIdentifier(), "my-group", setOf(membership.linearId))
+        runCreateGroupFlow(authorisedMember, networkId.toString(), groupId, "my-group", setOf(membership.linearId))
 
         runRequestMembershipFlow(secondRegularMember, authorisedMember, networkId.toString())
 
@@ -78,7 +78,7 @@ class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuth
         }.single()
 
         assertEquals(MembershipStatus.ACTIVE, infoForFirstRegularMember.membershipStatus)
-        assertTrue("my-group" in infoForFirstRegularMember.groups)
+        assertTrue(groupId.id in infoForFirstRegularMember.groups)
 
         val infoForSecondRegularMember = accessControlReport.members.filter {
             it.cordaIdentity == secondRegularMember.info.legalIdentities[0]
