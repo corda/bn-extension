@@ -16,6 +16,7 @@ import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
+import net.corda.core.utilities.unwrap
 
 /**
  * This flow is initiated by any member authorised to modify membership roles. Queries for the membership with [membershipId] linear ID and
@@ -67,14 +68,24 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
         // building transaction
         val outputMembership = membership.state.data.copy(roles = roles, modified = serviceHub.clock.instant())
         val requiredSigners = signers.map { it.owningKey }
+
+        // collect signatures and finalise transactions
+        val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
+
+        val authorised = observerSessions.map {
+            it.sendAndReceive<Boolean>(networkId).unwrap { it }
+        }.all { it }
+
+        if (!authorised) {
+            throw MembershipAuthorisationException("$ourIdentity is not authorized to modify roles.")
+        }
+
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membership)
                 .addOutputState(outputMembership)
                 .addCommand(MembershipContract.Commands.ModifyRoles(requiredSigners, ourIdentity), requiredSigners)
         builder.verify(serviceHub)
 
-        // collect signatures and finalise transactions
-        val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
         auditLogger.info("$ourIdentity successfully modified roles for membership with $membershipId membership ID from ${membership.state.data.roles} to $roles")
@@ -118,6 +129,16 @@ class ModifyRolesResponderFlow(private val session: FlowSession) : MembershipMan
 
     @Suspendable
     override fun call() {
+        val networkId = session.receive<String>().unwrap { it }
+
+        val bnService = serviceHub.cordaService(BNService::class.java)
+
+        val counterPartyMembership =
+                bnService.getAllMemberships(networkId).firstOrNull { it.state.data.identity.cordaIdentity == session.counterparty }
+                        ?: throw MembershipNotFoundException("CounterParty's membership state cannot be found.")
+
+        session.send(counterPartyMembership.state.data.canModifyRoles())
+
         signAndReceiveFinalisedTransaction(session) {
             if (it.value !is MembershipContract.Commands.ModifyRoles) {
                 throw FlowException("Only ModifyPermissions command is allowed")
