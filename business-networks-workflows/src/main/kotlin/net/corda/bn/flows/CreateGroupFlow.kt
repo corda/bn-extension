@@ -50,10 +50,10 @@ class CreateGroupFlow(
         val bnService = serviceHub.cordaService(BNService::class.java)
         val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
 
-        // check whether group already exists and whether there are same requests already submitted
-        checkGroupExistence(bnService)
-
         try {
+            // check whether group already exists and whether there are same requests already submitted
+            checkGroupExistence(bnService)
+
             // get all additional participants' memberships from provided membership ids
             val additionalParticipantsMemberships = additionalParticipants.map {
                 bnService.getMembership(it)
