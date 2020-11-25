@@ -16,6 +16,7 @@ import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import java.io.File
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Data class for storing information about a members and groups available on the network.
@@ -34,7 +35,7 @@ data class AccessControlMember(
         val cordaIdentity: Party,
         val businessIdentity: BNIdentity? = null,
         val membershipStatus: MembershipStatus,
-        val groups: Set<String?>,
+        val groups: Set<UUID>,
 
         @JsonSerialize(using = RoleSerializer::class)
         val roles: Set<BNRole>
@@ -45,6 +46,7 @@ data class AccessControlMember(
  */
 @CordaSerializable
 data class GroupInfo(
+        val id: UUID,
         val name: String?,
         val participants: List<Party>
 )
@@ -78,7 +80,7 @@ class BNOAccessControlReportFlow(
 
         // collect all groups and their members
         val groupInfos = bnService.getAllBusinessNetworkGroups(networkId).map {
-            GroupInfo(it.state.data.name, it.state.data.participants)
+            GroupInfo(it.state.data.linearId.id, it.state.data.name, it.state.data.participants)
         }.toSet()
 
         // Compare the groups and their members with our participants and update the membership if needed
@@ -115,7 +117,7 @@ class BNOAccessControlReportFlow(
                 val participants = groupState.participants
                 member.cordaIdentity in participants
             }.map {
-                it.name
+                it.id
             }
 
             member.copy(groups = member.groups + groupsPresent)
