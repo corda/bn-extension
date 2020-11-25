@@ -69,7 +69,7 @@ class ModifyBusinessIdentityFlow(
         val observerSessions = (outputMembership.participants - ourIdentity).map { initiateFlow(it) }
         val finalisedTransaction = collectSignaturesAndFinaliseTransaction(builder, observerSessions, signers)
 
-        auditLogger.info("$ourIdentity successfully modified Business Identity of a member with $membership membership ID from " +
+        auditLogger.info("$ourIdentity successfully modified Business Identity of a member with membership ID $membershipId from " +
                 "${membership.state.data.identity.businessIdentity} to $businessIdentity")
 
         return finalisedTransaction

@@ -55,9 +55,9 @@ class RequestMembershipAttributeChangeFlow(
     override fun call() : SignedTransaction {
         auditLogger.info(
                 "$ourIdentity started creating membership attribute changes request from $authorisedParty authorised party " +
-                 "in Business Network with $networkId network ID " +
-                 if(businessIdentity != null) "to have new $businessIdentity business identity " else "" +
-                 if(roles != null) "to have new $roles roles set" else ""
+                 "in Business Network with network ID $networkId " +
+                        (if(businessIdentity != null) "to have new $businessIdentity business identity " else "")  +
+                        (if(roles != null) "to have new $roles roles set" else "")
         )
 
         val bnService = serviceHub.cordaService(BNService::class.java)
