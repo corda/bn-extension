@@ -50,10 +50,10 @@ class CreateGroupFlow(
         val bnService = serviceHub.cordaService(BNService::class.java)
         val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
 
-        try {
-            // check whether group already exists and whether there are same requests already submitted
-            checkGroupExistence(bnService)
+        // check whether group already exists and whether there are same requests already submitted
+        checkGroupExistence(bnService)
 
+        try {
             // get all additional participants' memberships from provided membership ids
             val additionalParticipantsMemberships = additionalParticipants.map {
                 bnService.getMembership(it)
@@ -124,6 +124,9 @@ class CreateGroupFlow(
         groupName?.also {
             // check whether group with groupName already exists
             if (bnService.businessNetworkGroupExists(networkId, it)) {
+                bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString()) {
+                    logger.warn("Error when trying to delete a request for creation of Business Network Group with custom linear ID")
+                }
                 throw DuplicateBusinessNetworkGroupException("Business Network Group with $it name already exists in Business Network with $networkId ID")
             }
 
