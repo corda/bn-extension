@@ -124,6 +124,9 @@ class CreateGroupFlow(
         groupName?.also {
             // check whether group with groupName already exists
             if (bnService.businessNetworkGroupExists(networkId, it)) {
+                bnService.lockStorage.deleteLock(BNRequestType.BUSINESS_NETWORK_GROUP_ID, groupId.toString()) {
+                    logger.warn("Error when trying to delete a request for creation of Business Network Group with custom linear ID")
+                }
                 throw DuplicateBusinessNetworkGroupException("Business Network Group with $it name already exists in Business Network with $networkId ID")
             }
 
