@@ -18,21 +18,4 @@
                        constraintName="PK_MembershipStateSchemaV1"
                        tableName="membership_state"/>
     </changeSet>
-    <changeSet author="R3 Corda" id="complete_initial_membership_state_columns_and_constraints">
-        <addNotNullConstraint tableName="membership_state" columnName="corda_identity" columnDataType="varchar(255)"/>
-        <addNotNullConstraint tableName="membership_state" columnName="network_id" columnDataType="varchar(255)"/>
-        <addNotNullConstraint tableName="membership_state" columnName="status" columnDataType="integer"/>
-        <addColumn tableName="membership_state">
-            <column name="business_identity" type="varchar(64)" />
-            <column name="issuer_identity" type="varchar(255)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="issued" type="TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="modified" type="TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
-    </changeSet>
 </databaseChangeLog>
