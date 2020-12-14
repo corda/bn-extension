@@ -296,7 +296,7 @@ val updatedRoles: Set<BNRole> = ... // the new roles you want to associate the m
 val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
 // Request creation
-subFlow(authorisedParty, networkId, updatedIdentity, updatedRoles, notary)
+subFlow(RequestMembershipAttributeChangeFlow(authorisedParty, networkId, updatedIdentity, updatedRoles, notary))
 ```
 
 **ApproveMembershipAttributeChangeFlow arguments**:
