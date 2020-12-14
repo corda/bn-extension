@@ -296,7 +296,7 @@ val updatedRoles: Set<BNRole> = ... // the new roles you want to associate the m
 val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
 // Request creation
-subFlow(authorisedParty, networkId, updatedIdentity, updatedRoles, notary)
+subFlow(RequestMembershipAttributeChangeFlow(authorisedParty, networkId, updatedIdentity, updatedRoles, notary))
 ```
 
 **ApproveMembershipAttributeChangeFlow arguments**:
@@ -455,5 +455,5 @@ to sign all other identity update transactions.**
 val notary = serviceHub.networkMapCache.notaryIdentities.first())
 val updatedMember = ... // get the linear ID of the membership state associated with the Party which was updated
 
-subflow(UpdateCordaIdentityFlow(updatedMember, notary)
+subflow(UpdateCordaIdentityFlow(updatedMember, notary))
 ```
