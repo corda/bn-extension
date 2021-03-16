@@ -38,7 +38,7 @@ class ActivateMembershipFlow(private val membershipId: UniqueIdentifier, private
 
         // check whether party is authorised to initiate flow
         val networkId = membership.state.data.networkId
-        authorise(networkId, bnService) { it.canActivateMembership() }
+        val ourMembership = authorise(networkId, bnService) { it.canActivateMembership() }
 
         // fetch signers
         val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId).toSet()
@@ -51,6 +51,7 @@ class ActivateMembershipFlow(private val membershipId: UniqueIdentifier, private
                 .addInputState(membership)
                 .addOutputState(outputMembership)
                 .addCommand(MembershipContract.Commands.Activate(requiredSigners), requiredSigners)
+                .addReferenceState(ourMembership.referenced())
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction

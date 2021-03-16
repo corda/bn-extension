@@ -39,7 +39,7 @@ class SuspendMembershipFlow(private val membershipId: UniqueIdentifier, private 
 
         // check whether party is authorised to initiate flow
         val networkId = membership.state.data.networkId
-        authorise(networkId, bnService) { it.canSuspendMembership() }
+        val ourMembership = authorise(networkId, bnService) { it.canSuspendMembership() }
 
         // check if the result of this flow will leave the network without sufficient permissions across its authorised members
         val removedPermissions = membership.state.data.roles.map { it.permissions }.flatten().filterIsInstance<AdminPermission>().toSet()
@@ -58,6 +58,7 @@ class SuspendMembershipFlow(private val membershipId: UniqueIdentifier, private 
                 .addInputState(membership)
                 .addOutputState(outputMembership)
                 .addCommand(MembershipContract.Commands.Suspend(requiredSigners), requiredSigners)
+                .addReferenceState(ourMembership.referenced())
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction

@@ -71,7 +71,7 @@ class ModifyGroupInternalFlow(
         val (group, networkId) = fetchGroupAndValidateName(bnService)
 
         // check whether party is authorised to initiate flow
-        authorise(networkId, bnService) { it.canModifyGroups() }
+        val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
 
         // fetch all participants' memberships and identities
         val (participantsMemberships, participantsIdentities) = fetchParticipantsMembershipsAndIdentities(bnService)
@@ -80,7 +80,7 @@ class ModifyGroupInternalFlow(
         val (outputGroup, oldParticipantsMemberships) = validateParticipantsModification(networkId, group, participantsIdentities, bnService)
 
         // execute group modification (transaction building, signing, finalisation and post memberships sync)
-        val finalisedTransaction = executeGroupModification(networkId, oldParticipantsMemberships, participantsMemberships, group, outputGroup, bnService)
+        val finalisedTransaction = executeGroupModification(networkId, oldParticipantsMemberships, participantsMemberships, group, outputGroup, ourMembership, bnService)
 
         if (name != null) {
             auditLogger.info("$ourIdentity successfully modified name of a Business Network Group with $groupId group ID from \"${group.state.data.name}\" to \"$name\"")
@@ -215,6 +215,7 @@ class ModifyGroupInternalFlow(
             participantsMemberships: List<StateAndRef<MembershipState>>?,
             inputGroup: StateAndRef<GroupState>,
             outputGroup: GroupState,
+            ourMembership: StateAndRef<MembershipState>,
             bnService: BNService
     ): SignedTransaction {
         // fetch signers
@@ -227,6 +228,7 @@ class ModifyGroupInternalFlow(
                 .addInputState(inputGroup)
                 .addOutputState(outputGroup)
                 .addCommand(GroupContract.Commands.Modify(requiredSigners), requiredSigners)
+                .addReferenceState(ourMembership.referenced())
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction

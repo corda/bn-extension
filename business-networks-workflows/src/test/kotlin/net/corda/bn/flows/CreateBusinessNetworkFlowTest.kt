@@ -1,8 +1,13 @@
 package net.corda.bn.flows
 
+import net.corda.bn.contracts.GroupContract
 import net.corda.bn.contracts.MembershipContract
+import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
+import net.corda.core.contracts.Command
+import net.corda.core.contracts.ContractState
+import net.corda.core.contracts.TransactionState
 import net.corda.core.contracts.UniqueIdentifier
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -47,7 +52,7 @@ class CreateBusinessNetworkFlowTest : MembershipManagementFlowTest(numberOfAutho
     fun `create business network flow should fail when trying to create initial group with already existing group ID`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
         assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId) }
@@ -80,9 +85,24 @@ class CreateBusinessNetworkFlowTest : MembershipManagementFlowTest(numberOfAutho
     @Test(timeout = 300_000)
     fun `create business network flow happy path`() {
         val authorisedMember = authorisedMembers.first()
-        val (membership, command) = runCreateBusinessNetworkFlow(authorisedMember, businessIdentity = DummyIdentity("dummy-identity")).run {
+
+        data class TransactionComponents(
+            val membership: TransactionState<ContractState>,
+            val membershipCommand: Command<*>,
+            val group: TransactionState<ContractState>,
+            val groupCommand: Command<*>
+        )
+        val (membership, membershipCommand, group, groupCommand) = runCreateBusinessNetworkFlow(
+            authorisedMember,
+            businessIdentity = DummyIdentity("dummy-identity")
+        ).run {
             verifyRequiredSignatures()
-            tx.outputs.single() to tx.commands.single()
+            TransactionComponents(
+                tx.outputs.single { it.data is MembershipState },
+                tx.commands.single { it.value is MembershipContract.Commands },
+                tx.outputs.single { it.data is GroupState },
+                tx.commands.single { it.value is GroupContract.Commands }
+            )
         }
 
         val networkId = membership.run {
@@ -95,7 +115,18 @@ class CreateBusinessNetworkFlowTest : MembershipManagementFlowTest(numberOfAutho
 
             data.networkId
         }
-        assertTrue(command.value is MembershipContract.Commands.ModifyRoles)
+        assertTrue(membershipCommand.value is MembershipContract.Commands.Bootstrap)
+
+        group.run {
+            assertEquals(GroupContract.CONTRACT_NAME, contract)
+            assertTrue(data is GroupState)
+            val data = data as GroupState
+            assertEquals(networkId, data.networkId)
+            assertEquals(setOf(authorisedMember.identity()), data.participants.toSet())
+
+            data.networkId
+        }
+        assertTrue(groupCommand.value is GroupContract.Commands.Bootstrap)
 
         // also check ledger
         getAllMembershipsFromVault(authorisedMember, networkId).single().apply {

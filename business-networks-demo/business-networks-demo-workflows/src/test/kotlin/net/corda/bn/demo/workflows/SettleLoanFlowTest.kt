@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
 class SettleLoanFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers = 1) {
 
     private fun issueLoan(lender: StartedMockNode, borrower: StartedMockNode, amount: Int): LoanState {
-        val (networkId, lenderMembershipId) = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).run { networkId to linearId }
+        val (networkId, lenderMembershipId) = runCreateBusinessNetworkFlow(lender).membershipState().run { networkId to linearId }
         val borrowerMembershipId = runRequestMembershipFlow(borrower, lender.identity(), networkId).run {
             val membership = tx.outputStates.single() as MembershipState
             runActivateMembershipFlow(lender, membership.linearId)

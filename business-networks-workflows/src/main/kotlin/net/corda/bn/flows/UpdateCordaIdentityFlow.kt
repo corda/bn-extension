@@ -153,6 +153,10 @@ private class UpdateGroupMembersIdentityFlow(
         val (networkId, name) = changedMembership.state.data.run {
             networkId to identity.cordaIdentity.name
         }
+
+        val bnService = serviceHub.cordaService(BNService::class.java)
+        val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
+
         val newIdentity = serviceHub.identityService.wellKnownPartyFromX500Name(name)
                 ?: throw FlowException("Party with $name X500 name doesn't exist")
         val finalisedTransactions = getAllBusinessNetworkGroups(networkId).filter {
@@ -174,6 +178,7 @@ private class UpdateGroupMembersIdentityFlow(
                     .addInputState(group)
                     .addOutputState(updatedGroup)
                     .addCommand(GroupContract.Commands.Modify(requiredSigners), requiredSigners)
+                    .addReferenceState(ourMembership.referenced())
             builder.verify(serviceHub)
 
             // collect signatures and finalise transaction

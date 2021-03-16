@@ -5,7 +5,7 @@ import net.corda.bn.states.GroupState
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
 import org.junit.Test
-import java.lang.IllegalStateException
+import java.lang.IllegalArgumentException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -25,7 +25,7 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
 
         val groupName = "default-group"
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).membershipState().networkId
         val group = getAllGroupsFromVault(authorisedMember, networkId).single()
         assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateGroupFlow(authorisedMember, networkId, groupId = group.linearId) }
         assertFailsWith<DuplicateBusinessNetworkGroupException> { runCreateGroupFlow(authorisedMember, networkId, groupName = group.name) }
@@ -36,7 +36,7 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         runRequestAndSuspendMembershipFlow(regularMember, authorisedMember, networkId).apply {
             val membership = tx.outputStates.single() as MembershipState
@@ -58,7 +58,7 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val bnService = authorisedMember.services.cordaService(BNService::class.java)
         bnService.lockStorage.createLock(BNRequestType.BUSINESS_NETWORK_GROUP_NAME, groupName)
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         assertFailsWith<DuplicateBusinessNetworkRequestException> {
             runCreateGroupFlow(authorisedMember, networkId, groupId, groupName)
         }.apply {
@@ -81,15 +81,15 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     fun `create group flow should fail if invalid notary argument is provided`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
-        assertFailsWith<IllegalStateException> { runCreateGroupFlow(authorisedMember, networkId, notary = authorisedMember.identity()) }
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
+        assertFailsWith<IllegalArgumentException> { runCreateGroupFlow(authorisedMember, networkId, notary = authorisedMember.identity()) }
     }
 
     @Test(timeout = 300_000)
     fun `create group flow should fail if any of the additional participants is not member of business network`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         assertFailsWith<MembershipNotFoundException> { runCreateGroupFlow(authorisedMember, networkId, additionalParticipants = setOf(UniqueIdentifier())) }
     }
 
@@ -98,7 +98,7 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val membership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         assertFailsWith<IllegalMembershipStatusException> { runCreateGroupFlow(authorisedMember, networkId, additionalParticipants = setOf(membership.linearId)) }
     }
@@ -108,7 +108,7 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = authorisedMembership.networkId
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
@@ -125,7 +125,7 @@ class CreateGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = authorisedMembership.networkId
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 

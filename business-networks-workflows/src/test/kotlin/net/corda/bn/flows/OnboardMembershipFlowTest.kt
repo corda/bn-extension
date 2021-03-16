@@ -5,7 +5,7 @@ import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
 import net.corda.core.flows.FlowException
 import org.junit.Test
-import java.lang.IllegalStateException
+import java.lang.IllegalArgumentException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -18,7 +18,7 @@ class OnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val regularMember = regularMembers.first()
         val nonMember = regularMembers[1]
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         assertFailsWith<BusinessNetworkNotFoundException> { runOnboardMembershipFlow(nonMember, networkId, regularMember.identity()) }
 
         runRequestAndSuspendMembershipFlow(nonMember, authorisedMember, networkId).apply {
@@ -36,7 +36,7 @@ class OnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runOnboardMembershipFlow(authorisedMember, networkId, regularMember.identity())
 
         assertFailsWith<FlowException>("is already member of Business Network with $networkId ID") {
@@ -52,7 +52,7 @@ class OnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val bnService = authorisedMember.services.cordaService(BNService::class.java)
         bnService.lockStorage.createLock(BNRequestType.PENDING_MEMBERSHIP, regularMember.identity().toString())
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         assertFailsWith<DuplicateBusinessNetworkRequestException> {
             runOnboardMembershipFlow(authorisedMember, networkId, regularMember.identity())
         }
@@ -65,8 +65,8 @@ class OnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
-        assertFailsWith<IllegalStateException> {
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
+        assertFailsWith<IllegalArgumentException> {
             runOnboardMembershipFlow(authorisedMember, networkId, regularMember.identity(), notary = authorisedMember.identity())
         }
     }
@@ -76,7 +76,7 @@ class OnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val (networkId, membershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+        val (networkId, membershipId) = runCreateBusinessNetworkFlow(authorisedMember).membershipState().run {
             networkId to linearId
         }
 
@@ -90,7 +90,7 @@ class OnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val (membership, command) = runOnboardMembershipFlow(authorisedMember, networkId, regularMember.identity(), DummyIdentity("dummy-identity")).run {
             assertTrue(tx.inputs.isEmpty())

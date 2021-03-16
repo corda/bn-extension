@@ -26,7 +26,7 @@ class ActivateMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthoris
         val regularMember = regularMembers.first()
         val nonMember = regularMembers[1]
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val membership = runRequestAndSuspendMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
         assertFailsWith<MembershipNotFoundException> { runActivateMembershipFlow(nonMember, membership.linearId) }
@@ -46,7 +46,7 @@ class ActivateMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthoris
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val membership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         assertFailsWith<IllegalArgumentException> { runActivateMembershipFlow(authorisedMember, membership.linearId, authorisedMember.identity()) }
@@ -57,7 +57,7 @@ class ActivateMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthoris
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+        val (networkId, authorisedMembershipId) = runCreateBusinessNetworkFlow(authorisedMember).membershipState().run {
             networkId to linearId
         }
         val regularMembership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
@@ -75,7 +75,7 @@ class ActivateMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthoris
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val (membership, command) = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).run {
             assertEquals(1, tx.inputs.size)

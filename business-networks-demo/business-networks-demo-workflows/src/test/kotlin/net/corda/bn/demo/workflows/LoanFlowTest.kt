@@ -5,6 +5,7 @@ import net.corda.bn.flows.ActivateMembershipFlow
 import net.corda.bn.flows.CreateBusinessNetworkFlow
 import net.corda.bn.flows.ModifyGroupFlow
 import net.corda.bn.flows.RequestMembershipFlow
+import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -108,6 +109,8 @@ abstract class LoanFlowTest(private val numberOfLenders: Int, private val number
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
         return node.services.vaultService.queryBy(LoanState::class.java, criteria).states.map { it.state.data }
     }
+
+    protected fun SignedTransaction.membershipState() = tx.outputStates.single { it is MembershipState } as MembershipState
 }
 
 fun StartedMockNode.identity() = info.legalIdentities.single()

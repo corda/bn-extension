@@ -23,7 +23,7 @@ class DeleteGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     fun `delete group flow should fail if invalid notary argument is provided`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val groupId = (runCreateGroupFlow(authorisedMember, networkId).tx.outputStates.single() as GroupState).linearId
 
         assertFailsWith<IllegalArgumentException> { runDeleteGroupFlow(authorisedMember, groupId, authorisedMember.identity()) }
@@ -34,7 +34,7 @@ class DeleteGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         runRequestAndSuspendMembershipFlow(regularMember, authorisedMember, networkId).apply {
             val membership = tx.outputStates.single() as MembershipState
@@ -52,7 +52,7 @@ class DeleteGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     fun `delete group flow should fail if any member remains without any group participation`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
         assertFailsWith<MembershipMissingGroupParticipationException> { runDeleteGroupFlow(authorisedMember, groupId) }
     }
@@ -62,7 +62,7 @@ class DeleteGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = authorisedMembership.networkId
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
@@ -81,7 +81,7 @@ class DeleteGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = authorisedMembership.networkId
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 

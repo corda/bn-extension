@@ -24,7 +24,7 @@ class IssueLoanFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers = 
         assertFailsWith<MembershipNotFoundException> { runIssueLoanFlow(lender, illegalNetworkId, borrower.identity(), 10) }
 
         // now only borrower is not member of a business network
-        val (networkId, membershipId) = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).run { networkId to linearId }
+        val (networkId, membershipId) = runCreateBusinessNetworkFlow(lender).membershipState().run { networkId to linearId }
         runAssignBICFlow(lender, membershipId, "BANKGB00")
         runAssignLoanIssuerRole(lender, networkId)
         assertFailsWith<MembershipNotFoundException> { runIssueLoanFlow(lender, networkId, borrower.identity(), 10) }
@@ -36,7 +36,7 @@ class IssueLoanFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers = 
         val borrower = borrowers.first()
 
         // borrower's membership is in pending status
-        val (networkId, membershipId) = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).run { networkId to linearId }
+        val (networkId, membershipId) = runCreateBusinessNetworkFlow(lender).membershipState().run { networkId to linearId }
         runAssignBICFlow(lender, membershipId, "BANKGB00")
         runAssignLoanIssuerRole(lender, networkId)
         runRequestMembershipFlow(borrower, lender.identity(), networkId)
@@ -49,7 +49,7 @@ class IssueLoanFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers = 
         val borrower = borrowers.first()
 
         // both lender and borrower don't have bank identity
-        val (networkId, membershipId) = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).run { networkId to linearId }
+        val (networkId, membershipId) = runCreateBusinessNetworkFlow(lender).membershipState().run { networkId to linearId }
         runRequestMembershipFlow(borrower, lender.identity(), networkId).apply {
             val membership = tx.outputStates.single() as MembershipState
             runActivateMembershipFlow(lender, membership.linearId)
@@ -68,7 +68,7 @@ class IssueLoanFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers = 
         val lender = lenders.first()
         val borrower = borrowers.first()
 
-        val (networkId, lenderMembershipId) = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).run { networkId to linearId }
+        val (networkId, lenderMembershipId) = runCreateBusinessNetworkFlow(lender).membershipState().run { networkId to linearId }
         val borrowerMembershipId = runRequestMembershipFlow(borrower, lender.identity(), networkId).run {
             val membership = tx.outputStates.single() as MembershipState
             runActivateMembershipFlow(lender, membership.linearId)
@@ -85,7 +85,7 @@ class IssueLoanFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers = 
         val lender = lenders.first()
         val borrower = borrowers.first()
 
-        val (networkId, lenderMembershipId) = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).run { networkId to linearId }
+        val (networkId, lenderMembershipId) = runCreateBusinessNetworkFlow(lender).membershipState().run { networkId to linearId }
         val borrowerMembershipId = runRequestMembershipFlow(borrower, lender.identity(), networkId).run {
             val membership = tx.outputStates.single() as MembershipState
             runActivateMembershipFlow(lender, membership.linearId)

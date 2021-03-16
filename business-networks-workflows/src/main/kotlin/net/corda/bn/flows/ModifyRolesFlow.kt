@@ -43,7 +43,7 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
 
         // check whether party is authorised to initiate flow
         val networkId = membership.state.data.networkId
-        authorise(networkId, bnService) { it.canModifyRoles() }
+        val ourMembership = authorise(networkId, bnService) { it.canModifyRoles() }
 
         // check if the result of this flow will leave the network without sufficient permissions across its authorised members
         val oldPermissions = membership.state.data.roles.map { it.permissions }.flatten().filterIsInstance<AdminPermission>().toSet()
@@ -70,7 +70,10 @@ class ModifyRolesFlow(private val membershipId: UniqueIdentifier, private val ro
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membership)
                 .addOutputState(outputMembership)
-                .addCommand(MembershipContract.Commands.ModifyRoles(requiredSigners, ourIdentity), requiredSigners)
+                .addCommand(MembershipContract.Commands.ModifyRoles(requiredSigners), requiredSigners)
+        if (outputMembership.identity.cordaIdentity != ourIdentity) {
+            builder.addReferenceState(ourMembership.referenced())
+        }
         builder.verify(serviceHub)
 
         // collect signatures and finalise transactions

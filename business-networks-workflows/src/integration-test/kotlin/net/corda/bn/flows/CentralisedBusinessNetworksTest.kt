@@ -5,6 +5,7 @@ import net.corda.bn.states.BNRole
 import net.corda.bn.states.MemberRole
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.serialization.CordaSerializable
+import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.driver
 import net.corda.testing.node.TestCordapp
@@ -25,6 +26,7 @@ class CentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
     fun `public centralised business network test`() {
         driver(DriverParameters(
                 startNodesInProcess = true,
+                networkParameters = testNetworkParameters(minimumPlatformVersion = 4),
                 cordappsForAllNodes = listOf(TestCordapp.findCordapp("net.corda.bn.contracts"), TestCordapp.findCordapp("net.corda.bn.flows"))
         )) {
             // start bno (Business Network creator) and subsequent member nodes
@@ -86,6 +88,7 @@ class CentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
     fun `private centralised business network test`() {
         driver(DriverParameters(
                 startNodesInProcess = true,
+                networkParameters = testNetworkParameters(minimumPlatformVersion = 4),
                 cordappsForAllNodes = listOf(TestCordapp.findCordapp("net.corda.bn.contracts"), TestCordapp.findCordapp("net.corda.bn.flows"))
         )) {
             // start bno (Business Network creator) and subsequent member nodes
@@ -151,6 +154,7 @@ class CentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
     fun `rbac oriented business network test`() {
         driver(DriverParameters(
                 startNodesInProcess = true,
+                networkParameters = testNetworkParameters(minimumPlatformVersion = 4),
                 cordappsForAllNodes = listOf(TestCordapp.findCordapp("net.corda.bn.contracts"), TestCordapp.findCordapp("net.corda.bn.flows"))
         )) {
             // start bno (Business Network creator) and subsequent member nodes

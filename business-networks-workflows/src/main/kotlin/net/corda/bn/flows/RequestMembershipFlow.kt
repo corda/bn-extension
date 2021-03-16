@@ -99,7 +99,7 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
 
         // check whether party is authorised to activate membership
         val bnService = serviceHub.cordaService(BNService::class.java)
-        authorise(networkId, bnService) { it.canActivateMembership() }
+        val ourMembership = authorise(networkId, bnService) { it.canActivateMembership() }
 
         val counterparty = session.counterparty
         if (bnService.isBusinessNetworkMember(networkId, counterparty)) {
@@ -128,6 +128,7 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : Members
             val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                     .addOutputState(membershipState)
                     .addCommand(MembershipContract.Commands.Request(requiredSigners), requiredSigners)
+                    .addReferenceState(ourMembership.referenced())
             builder.verify(serviceHub)
 
             // sign transaction

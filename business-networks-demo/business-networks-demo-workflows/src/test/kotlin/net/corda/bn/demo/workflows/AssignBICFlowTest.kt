@@ -15,7 +15,7 @@ class AssignBICFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers = 
     fun `assign bic flow should fail if invalid bic is provided`() {
         val lender = lenders.first()
 
-        val membershipId = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).linearId
+        val membershipId = runCreateBusinessNetworkFlow(lender).membershipState().linearId
         val illegalBic = "ILLEGAL-BIC"
         assertFailsWith<IllegalFlowArgumentException> { runAssignBICFlow(lender, membershipId, illegalBic) }
     }
@@ -24,7 +24,7 @@ class AssignBICFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfBorrowers = 
     fun `assign bic flow happy path`() {
         val lender = lenders.first()
 
-        val membershipId = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).linearId
+        val membershipId = runCreateBusinessNetworkFlow(lender).membershipState().linearId
         val bic = "BANKGB00"
         val (membership, command) = runAssignBICFlow(lender, membershipId, bic).run {
             assertEquals(1, tx.inputs.size)

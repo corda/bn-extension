@@ -29,7 +29,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         val invalidNetworkId = "invalid-network-id"
         listOf(authorisedMemberService, regularMemberService).forEach { service -> assertFalse(service.businessNetworkExists(invalidNetworkId)) }
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         assertTrue(authorisedMemberService.businessNetworkExists(networkId))
         assertFalse(regularMemberService.businessNetworkExists(networkId))
 
@@ -59,7 +59,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
             assertFailsWith<IllegalStateException> { service.getMembership(invalidNetworkId, invalidIdentity) }
         }
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         authorisedMembership.apply {
             assertEquals(linearId, authorisedMemberService.getMembership(linearId)?.state?.data?.linearId)
             assertEquals(linearId, authorisedMemberService.getMembership(networkId, identity.cordaIdentity)?.state?.data?.linearId)
@@ -115,7 +115,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
             assertFailsWith<IllegalStateException> { service.getLinearIdsForAllMemberships(invalidNetworkId) }
         }
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getLinearIdsForAllMemberships(authorisedMembership.networkId).toSet())
         assertFailsWith<IllegalStateException> { regularMemberService.getLinearIdsForAllMemberships(authorisedMembership.networkId) }
 
@@ -150,7 +150,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
             assertFailsWith<IllegalStateException> { service.getMembersAuthorisedToModifyMembership(invalidNetworkId) }
         }
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         assertEquals(setOf(authorisedMembership.linearId), authorisedMemberService.getMembersAuthorisedToModifyMembership(authorisedMembership.networkId).map { it.state.data.linearId }.toSet())
         assertFailsWith<IllegalStateException> { regularMemberService.getMembersAuthorisedToModifyMembership(authorisedMembership.networkId) }
 
@@ -192,7 +192,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
 
         val groupId = UniqueIdentifier()
         val groupName = "default-group"
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId, groupName = groupName).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember, groupId = groupId, groupName = groupName).membershipState().networkId
         assertTrue(authorisedMemberService.businessNetworkGroupExists(groupId))
         assertTrue(authorisedMemberService.businessNetworkGroupExists(networkId, groupName))
         assertFalse(regularMemberService.businessNetworkGroupExists(groupId))
@@ -234,7 +234,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
         }
 
         val groupName = "default-group"
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).membershipState().networkId
         val groupId = authorisedMemberService.getAllBusinessNetworkGroups(networkId).single().state.data.linearId
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(groupId)?.state?.data?.participants?.toSet())
         assertEquals(setOf(authorisedMember.identity()), authorisedMemberService.getBusinessNetworkGroup(networkId, groupName)?.state?.data?.participants?.toSet())
@@ -273,7 +273,7 @@ class BNServiceTest : MembershipManagementFlowTest(numberOfAuthorisedMembers = 1
             assertFailsWith<IllegalStateException> { service.getAllBusinessNetworkGroups(invalidNetworkId) }
         }
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         assertTrue(authorisedMemberService.getAllBusinessNetworkGroups(networkId).isNotEmpty())
         assertFailsWith<IllegalStateException> { regularMemberService.getAllBusinessNetworkGroups(networkId) }
 

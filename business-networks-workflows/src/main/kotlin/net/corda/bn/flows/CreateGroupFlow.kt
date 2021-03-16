@@ -85,6 +85,7 @@ class CreateGroupFlow(
             val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                     .addOutputState(group)
                     .addCommand(GroupContract.Commands.Create(requiredSigners), requiredSigners)
+                    .addReferenceState(ourMembership.referenced())
             builder.verify(serviceHub)
 
             // collect signatures and finalise transaction

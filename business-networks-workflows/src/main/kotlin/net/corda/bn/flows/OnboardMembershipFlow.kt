@@ -43,7 +43,7 @@ class OnboardMembershipFlow(
 
         // check whether party is authorised to initiate flow
         val bnService = serviceHub.cordaService(BNService::class.java)
-        authorise(networkId, bnService) { it.canActivateMembership() }
+        val ourMembership = authorise(networkId, bnService) { it.canActivateMembership() }
 
         // check whether onboarded party is already member of given Business Network
         if (bnService.isBusinessNetworkMember(networkId, onboardedParty)) {
@@ -72,6 +72,7 @@ class OnboardMembershipFlow(
             val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                     .addOutputState(membershipState)
                     .addCommand(MembershipContract.Commands.Onboard(requiredSigners), requiredSigners)
+                    .addReferenceState(ourMembership.referenced())
             builder.verify(serviceHub)
 
             val observerSessions = (observers + onboardedParty).map { initiateFlow(it) }

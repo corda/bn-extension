@@ -32,7 +32,7 @@ fun NodeHandle.createBusinessNetwork(
 ): MembershipState {
     val stx = rpc.startFlow(::CreateBusinessNetworkFlow, networkId, businessIdentity, groupId, groupName, notary)
             .returnValue.getOrThrow()
-    return stx.tx.outputStates.single() as MembershipState
+    return stx.tx.outputStates.single { it is MembershipState } as MembershipState
 }
 
 /** Helper method to call [RequestMembershipFlow] from [NodeHandle]. **/
