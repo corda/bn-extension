@@ -94,6 +94,13 @@ abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
         val stx = if (isSigner) {
             val signResponder = object : SignTransactionFlow(session) {
                 override fun checkTransaction(stx: SignedTransaction) {
+                    stx.tx.toLedgerTransaction(serviceHub).referenceStates.singleOrNull { it is MembershipState }?.also {
+                        val initiator = it as MembershipState
+                        if (initiator.identity.cordaIdentity != session.counterparty) {
+                            throw FlowException("Initiator sent someone else's membership as the reference state of transaction")
+                        }
+                    }
+
                     val command = stx.tx.commands.single()
                     commandCheck(command)
 
