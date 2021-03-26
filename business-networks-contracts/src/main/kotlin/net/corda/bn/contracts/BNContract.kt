@@ -17,7 +17,7 @@ interface BNContract : Contract {
      *
      * @param tx Ledger transaction over which contract performs verification.
      * @param networkId ID of the Business Network.
-     * @param modifiedState State that is modified in the transaction.
+     * @param evolvedState State that is evolves in the transaction.
      * @param requiredSigners List of required transaction signers.
      * @param authorisationMethod Method which does actual authorisation check over membership.
      *
@@ -26,7 +26,7 @@ interface BNContract : Contract {
     fun verifyInitiator(
         tx: LedgerTransaction,
         networkId: String,
-        modifiedState: ContractState,
+        evolvedState: ContractState,
         requiredSigners: List<PublicKey>,
         authorisationMethod: (MembershipState) -> Boolean
     ): MembershipState = requireThat {
@@ -37,7 +37,7 @@ interface BNContract : Contract {
         "Initiator must be authorised to build the membership modification transactions" using (authorisationMethod(
             initiator
         ))
-        "Initiator must be one of the participants of the modified state" using (initiator.identity.cordaIdentity in modifiedState.participants)
+        "Initiator must be one of the participants of the modified state" using (initiator.identity.cordaIdentity in evolvedState.participants)
         "Initiator must be one of the required signers" using (initiator.identity.cordaIdentity.owningKey in requiredSigners)
 
         initiator

@@ -125,6 +125,8 @@ abstract class AbstractBusinessNetworksTest {
     ) {
         bnoNode.activateMembership(membershipId, notary)
 
+        Thread.sleep(1000L)
+
         (memberNodes + bnoNode).forEach { node ->
             val service = node.services.cordaService(BNService::class.java)
 

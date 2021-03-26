@@ -1,9 +1,13 @@
 package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
+import net.corda.bn.contracts.GroupContract
+import net.corda.bn.contracts.MembershipContract
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.Command
+import net.corda.core.contracts.CommandData
 import net.corda.core.contracts.StateAndRef
+import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.CollectSignaturesFlow
 import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowException
@@ -94,15 +98,18 @@ abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
         val stx = if (isSigner) {
             val signResponder = object : SignTransactionFlow(session) {
                 override fun checkTransaction(stx: SignedTransaction) {
-                    stx.tx.toLedgerTransaction(serviceHub).referenceStates.singleOrNull { it is MembershipState }?.also {
+                    val command = stx.tx.commands.single()
+                    commandCheck(command)
+
+                    val ltx = stx.tx.toLedgerTransaction(serviceHub)
+                    ltx.referenceStates.singleOrNull { it is MembershipState }?.also { it ->
                         val initiator = it as MembershipState
                         if (initiator.identity.cordaIdentity != session.counterparty) {
                             throw FlowException("Initiator sent someone else's membership as the reference state of transaction")
                         }
-                    }
 
-                    val command = stx.tx.commands.single()
-                    commandCheck(command)
+                        authorise(initiator.linearId, command.value)
+                    }
 
                     stx.toLedgerTransaction(serviceHub, false).verify()
                 }
@@ -113,6 +120,36 @@ abstract class MembershipManagementFlow<T> : FlowLogic<T>() {
         } else null
 
         subFlow(ReceiveFinalityFlow(session, stx?.id, StatesToRecord.ALL_VISIBLE))
+    }
+
+    /**
+     * Helper method to perform authorisation based on [command] over membership with [initiatorId].
+     */
+    @Suppress("ComplexMethod")
+    private fun authorise(initiatorId: UniqueIdentifier, command: CommandData) {
+        // onboarded member should not be aware of the authorised member since it is not yet member of the business network
+        if (command is MembershipContract.Commands.Onboard) {
+            return
+        }
+
+        serviceHub.cordaService(BNService::class.java).getMembership(initiatorId)?.run {
+            val authorisationMethod: (MembershipState) -> Boolean = when (command) {
+                is MembershipContract.Commands.Activate -> { it -> it.canActivateMembership() }
+                is MembershipContract.Commands.Suspend -> { it -> it.canSuspendMembership() }
+                is MembershipContract.Commands.Revoke -> { it -> it.canRevokeMembership() }
+                is MembershipContract.Commands.ModifyBusinessIdentity -> { it -> it.canModifyBusinessIdentity() }
+                is MembershipContract.Commands.ModifyRoles -> { it -> it.canModifyRoles() }
+                is GroupContract.Commands.Create -> { it -> it.canModifyGroups() }
+                is GroupContract.Commands.Modify -> { it -> it.canModifyGroups() }
+                is GroupContract.Commands.Exit -> { it -> it.canModifyGroups() }
+                else -> { _ -> true }
+            }
+
+            val membership = state.data
+            if (!authorisationMethod(membership)) {
+                throw MembershipAuthorisationException("${membership.identity.cordaIdentity} is not authorised to perform $command")
+            }
+        } ?: throw MembershipNotFoundException("Membership state with $initiatorId doesn't exist")
     }
 
     /**
