@@ -28,7 +28,7 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val regularMember = regularMembers.first()
         val nonMember = regularMembers[1]
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
         assertFailsWith<MembershipNotFoundException> { runModifyRolesFlow(nonMember, membership.linearId, setOf(BNORole())) }
@@ -48,7 +48,7 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val membership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         assertFailsWith<IllegalArgumentException> { runModifyRolesFlow(authorisedMember, membership.linearId, setOf(BNORole()), authorisedMember.identity()) }
@@ -66,7 +66,7 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
                         AdminPermission.CAN_REVOKE_MEMBERSHIP,
                         AdminPermission.CAN_SUSPEND_MEMBERSHIP))
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = authorisedMembership.networkId
         val activatedMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         runModifyRolesFlow(authorisedMember, activatedMembership.linearId, setOf(lesserBNORole))
@@ -79,7 +79,7 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+        val (networkId, authorisedMembershipId) = runCreateBusinessNetworkFlow(authorisedMember).membershipState().run {
             networkId to linearId
         }
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
@@ -98,7 +98,7 @@ class ModifyRolesFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val activatedMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         val (membership, command) = runModifyRolesFlow(authorisedMember, activatedMembership.linearId, setOf(BNORole())).run {

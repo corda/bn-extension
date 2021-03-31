@@ -15,7 +15,6 @@ import net.corda.core.serialization.CordaSerializable
 import net.corda.testing.core.TestIdentity
 import net.corda.testing.core.expect
 import net.corda.testing.core.expectEvents
-import net.corda.testing.core.sequence
 import net.corda.testing.driver.InProcess
 import net.corda.testing.driver.NodeHandle
 import rx.Observable
@@ -62,24 +61,14 @@ abstract class AbstractBusinessNetworksTest {
 
         bnoVaultUpdates.apply {
             membershipUpdates.expectEvents(isStrict = false) {
-                sequence(
-                        expect { update ->
-                            val membership = update.produced.single().state.data
-                            assertEquals(networkId.toString(), membership.networkId)
-                            assertEquals(bnoNode.identity(), membership.identity.cordaIdentity)
-                            assertEquals(businessIdentity, membership.identity.businessIdentity)
-                            assertEquals(MembershipStatus.ACTIVE, membership.status)
-                            assertEquals(emptySet(), membership.roles)
-                        },
-                        expect { update ->
-                            val membership = update.produced.single().state.data
-                            assertEquals(networkId.toString(), membership.networkId)
-                            assertEquals(bnoNode.identity(), membership.identity.cordaIdentity)
-                            assertEquals(businessIdentity, membership.identity.businessIdentity)
-                            assertEquals(MembershipStatus.ACTIVE, membership.status)
-                            assertEquals(setOf(BNORole()), membership.roles)
-                        }
-                )
+                expect { update ->
+                    val membership = update.produced.single().state.data
+                    assertEquals(networkId.toString(), membership.networkId)
+                    assertEquals(bnoNode.identity(), membership.identity.cordaIdentity)
+                    assertEquals(businessIdentity, membership.identity.businessIdentity)
+                    assertEquals(MembershipStatus.ACTIVE, membership.status)
+                    assertEquals(setOf(BNORole()), membership.roles)
+                }
             }
             groupUpdates.expectEvents(isStrict = false) {
                 expect { update ->
@@ -129,26 +118,22 @@ abstract class AbstractBusinessNetworksTest {
 
     /** Calls [ActivateMembershipFlow] on [bnoNode] and performs ledger checks. **/
     protected fun activateMembershipAndCheck(
-            bnoNode: NodeHandle,
-            memberNodes: List<NodeHandle>,
+            bnoNode: InProcess,
+            memberNodes: List<InProcess>,
             membershipId: UniqueIdentifier,
             notary: Party
     ) {
-        val allVaultUpdates = (memberNodes + bnoNode).map { node ->
-            node.rpc.run {
-                VaultUpdates(vaultTrackBy<MembershipState>().updates, vaultTrackBy<GroupState>().updates)
-            }
-        }
-
         bnoNode.activateMembership(membershipId, notary)
 
-        allVaultUpdates.forEach { vaultUpdates ->
-            vaultUpdates.membershipUpdates.expectEvents(isStrict = false) {
-                expect { update ->
-                    val membership = update.produced.single().state.data
-                    assertEquals(MembershipStatus.ACTIVE, membership.status)
-                    assertEquals(membershipId, membership.linearId)
-                }
+        Thread.sleep(1000L)
+
+        (memberNodes + bnoNode).forEach { node ->
+            val service = node.services.cordaService(BNService::class.java)
+
+            val membership = service.getMembership(membershipId)
+            assertNotNull(membership)
+            membership?.state?.data?.let {
+                assertEquals(MembershipStatus.ACTIVE, it.status)
             }
         }
     }

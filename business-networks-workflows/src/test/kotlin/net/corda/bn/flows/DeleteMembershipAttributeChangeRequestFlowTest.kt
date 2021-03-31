@@ -2,7 +2,6 @@ package net.corda.bn.flows
 
 import net.corda.bn.states.AdminPermission
 import net.corda.bn.states.BNRole
-import net.corda.bn.states.MembershipState
 import net.corda.bn.states.ChangeRequestState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.serialization.CordaSerializable
@@ -21,7 +20,7 @@ class DeleteMembershipAttributeChangeRequestFlowTest : MembershipManagementFlowT
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, roles = setOf(ModifyBusinessIdentityPermission()))
@@ -36,7 +35,7 @@ class DeleteMembershipAttributeChangeRequestFlowTest : MembershipManagementFlowT
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val request =

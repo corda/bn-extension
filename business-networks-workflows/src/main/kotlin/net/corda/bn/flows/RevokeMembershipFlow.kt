@@ -63,9 +63,12 @@ class RevokeMembershipFlow(private val membershipId: UniqueIdentifier, private v
 
         // building transaction
         val requiredSigners = signers.map { it.owningKey }
+        val ourMembership = bnService.getMembership(networkId, ourIdentity)
+            ?: throw MembershipNotFoundException("$ourIdentity is not member of a business network")
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membership)
                 .addCommand(MembershipContract.Commands.Revoke(requiredSigners), requiredSigners)
+                .addReferenceState(ourMembership.referenced())
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction

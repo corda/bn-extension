@@ -41,7 +41,7 @@ class ModifyBusinessIdentityFlow(
 
         // check whether party is authorised to initiate flow
         val networkId = membership.state.data.networkId
-        authorise(networkId, bnService) { it.canModifyBusinessIdentity() }
+        val ourMembership = authorise(networkId, bnService) { it.canModifyBusinessIdentity() }
 
         // fetch signers
         val authorisedMemberships = bnService.getMembersAuthorisedToModifyMembership(networkId).toSet()
@@ -62,7 +62,10 @@ class ModifyBusinessIdentityFlow(
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membership)
                 .addOutputState(outputMembership)
-                .addCommand(MembershipContract.Commands.ModifyBusinessIdentity(requiredSigners, ourIdentity), requiredSigners)
+                .addCommand(MembershipContract.Commands.ModifyBusinessIdentity(requiredSigners), requiredSigners)
+        if (outputMembership.identity.cordaIdentity != ourIdentity) {
+            builder.addReferenceState(ourMembership.referenced())
+        }
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction

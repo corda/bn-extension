@@ -24,7 +24,7 @@ class AssignLoanIssuerRoleFlowTest : LoanFlowTest(numberOfLenders = 1, numberOfB
     fun `assign loan issuer role flow happy path`() {
         val lender = lenders.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(lender).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(lender).membershipState().networkId
         val (membership, command) = runAssignLoanIssuerRole(lender, networkId).run {
             assertEquals(1, tx.inputs.size)
             verifyRequiredSignatures()

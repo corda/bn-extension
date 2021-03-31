@@ -28,7 +28,7 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         assertFailsWith<TransactionVerificationException> {
@@ -41,7 +41,7 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         assertFailsWith<BusinessNetworkNotFoundException> {
@@ -57,7 +57,7 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val bnService = authorisedMember.services.cordaService(BNService::class.java)
         bnService.lockStorage.createLock(BNRequestType.PENDING_ATTRIBUTE_CHANGE_REQUEST, regularMember.identity().toString())
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         assertFailsWith<FlowException> {
@@ -73,7 +73,7 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val firstRegularMember = regularMembers.first()
         val secondRegularMember = regularMembers.last()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(firstRegularMember, authorisedMember, networkId)
         val membershipId = (runRequestAndActivateMembershipFlows(secondRegularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
 
@@ -89,7 +89,7 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val (request, command) =
@@ -119,7 +119,7 @@ class RequestMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val (request, command) =

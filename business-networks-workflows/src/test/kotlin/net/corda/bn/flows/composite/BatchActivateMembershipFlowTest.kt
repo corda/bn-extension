@@ -14,7 +14,7 @@ class BatchActivateMembershipFlowTest : MembershipManagementFlowTest(numberOfAut
     fun `batch activate membership flow with all members added to the default group`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val memberships = regularMembers.map {
             (runRequestMembershipFlow(it, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
         }.map {
@@ -42,7 +42,7 @@ class BatchActivateMembershipFlowTest : MembershipManagementFlowTest(numberOfAut
     fun `batch activate membership flow with members added to specific groups`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val defaultGroupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
         val memberships = regularMembers.map {
@@ -86,7 +86,7 @@ class BatchActivateMembershipFlowTest : MembershipManagementFlowTest(numberOfAut
     fun `batch activate membership flow with member activation sublow fails`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val memberships = regularMembers.map {
             (runRequestMembershipFlow(it, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
         }.map {

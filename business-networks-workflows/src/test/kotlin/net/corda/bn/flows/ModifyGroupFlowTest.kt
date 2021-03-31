@@ -15,7 +15,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     fun `modify group flow should fail if name and participants argument are not specified`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
         assertFailsWith<IllegalFlowArgumentException> { runModifyGroupFlow(authorisedMember, groupId) }
@@ -35,7 +35,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val regularMember = regularMembers.first()
 
         val groupName = "default-group"
-        val (networkId, authorisedMemberId) = (runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).tx.outputStates.single() as MembershipState).run {
+        val (networkId, authorisedMemberId) = runCreateBusinessNetworkFlow(authorisedMember, groupName = groupName).membershipState().run {
             networkId to linearId
         }
         val regularMemberId = (runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
@@ -53,7 +53,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     fun `modify group flow should fail if invalid notary argument is provided`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
         assertFailsWith<IllegalArgumentException> { runModifyGroupFlow(authorisedMember, groupId, name = "new-name", notary = authorisedMember.identity()) }
@@ -64,7 +64,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         runRequestAndSuspendMembershipFlow(regularMember, authorisedMember, networkId).apply {
             val membership = tx.outputStates.single() as MembershipState
@@ -82,7 +82,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
     fun `modify group flow should fail if any of the new participants is not member of business network`() {
         val authorisedMember = authorisedMembers.first()
 
-        val membership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val membership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val groupId = getAllGroupsFromVault(authorisedMember, membership.networkId).single().linearId
 
         assertFailsWith<MembershipNotFoundException> { runModifyGroupFlow(authorisedMember, groupId, participants = setOf(membership.linearId, UniqueIdentifier())) }
@@ -93,7 +93,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val membership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val membership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = membership.networkId
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
         val pendingMembership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
@@ -106,7 +106,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val membership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val membership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = membership.networkId
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
         val activeMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
@@ -119,7 +119,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val membership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val membership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = membership.networkId
         val groupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
@@ -132,7 +132,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = authorisedMembership.networkId
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
@@ -151,7 +151,7 @@ class ModifyGroupFlowTest : MembershipManagementFlowTest(numberOfAuthorisedMembe
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         val networkId = authorisedMembership.networkId
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 

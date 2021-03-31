@@ -16,7 +16,7 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
     fun `request membership flow should fail if initiator is already business network member`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         assertFailsWith<FlowException>("Initiator is already a member of Business Network with $networkId ID") {
             runRequestMembershipFlow(authorisedMember, authorisedMember, networkId)
@@ -31,7 +31,7 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val bnService = authorisedMember.services.cordaService(BNService::class.java)
         bnService.lockStorage.createLock(BNRequestType.PENDING_MEMBERSHIP, regularMember.identity().toString())
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         assertFailsWith<FlowException> {
             runRequestMembershipFlow(regularMember, authorisedMember, networkId)
         }
@@ -44,7 +44,7 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val invalidNetworkId = "invalid-network-id"
 
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
@@ -60,7 +60,7 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val regularMember = regularMembers.first()
         val pendingMember = regularMembers[1]
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val membership = runRequestMembershipFlow(pendingMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         assertFailsWith<IllegalMembershipStatusException> { runRequestMembershipFlow(regularMember, pendingMember, networkId) }
@@ -74,7 +74,7 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         assertFailsWith<UnexpectedFlowEndException> { runRequestMembershipFlow(regularMember, authorisedMember, networkId, notary = authorisedMember.identity()) }
     }
@@ -84,7 +84,7 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val (networkId, membershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+        val (networkId, membershipId) = runCreateBusinessNetworkFlow(authorisedMember).membershipState().run {
             networkId to linearId
         }
 
@@ -98,7 +98,7 @@ class RequestMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val (membership, command) = runRequestMembershipFlow(regularMember, authorisedMember, networkId, DummyIdentity("dummy-identity")).run {
             assertTrue(tx.inputs.isEmpty())

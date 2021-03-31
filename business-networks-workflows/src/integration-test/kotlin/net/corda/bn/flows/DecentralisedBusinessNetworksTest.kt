@@ -2,6 +2,7 @@ package net.corda.bn.flows
 
 import net.corda.bn.states.BNORole
 import net.corda.core.contracts.UniqueIdentifier
+import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.driver
 import net.corda.testing.node.TestCordapp
@@ -13,6 +14,7 @@ class DecentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
     fun `public decentralised business network test`() {
         driver(DriverParameters(
                 startNodesInProcess = true,
+                networkParameters = testNetworkParameters(minimumPlatformVersion = 4),
                 cordappsForAllNodes = listOf(TestCordapp.findCordapp("net.corda.bn.contracts"), TestCordapp.findCordapp("net.corda.bn.flows"))
         )) {
             // start bno (Business Network creator) and subsequent member nodes
@@ -57,6 +59,9 @@ class DecentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
 
             // use one of the members to modify Business Network creator's business identity
             modifyBusinessIdentityAndCheck(memberNodes.first(), memberNodes + bnoNode, bnoMembershipId, MyIdentity("SpecialBNO"), defaultNotaryIdentity)
+
+            // remove elevated privileges from Business Network creator
+            modifyRolesAndCheck(memberNodes.first(), memberNodes + bnoNode, bnoMembershipId, emptySet(), defaultNotaryIdentity)
 
             // use one of the members to revoke Business Network creator's membership
             revokeMembershipAndCheck(memberNodes[1], memberNodes + bnoNode, bnoMembershipId, defaultNotaryIdentity, networkId.toString(), bnoNode.identity())

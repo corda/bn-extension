@@ -37,7 +37,7 @@ class DeleteGroupFlow(private val groupId: UniqueIdentifier, private val notary:
 
         // check whether party is authorised to initiate flow
         val networkId = group.state.data.networkId
-        authorise(networkId, bnService) { it.canModifyGroups() }
+        val ourMembership = authorise(networkId, bnService) { it.canModifyGroups() }
 
         // check whether any member is not participant of any group
         val oldParticipantsMemberships = group.state.data.participants.map {
@@ -60,6 +60,7 @@ class DeleteGroupFlow(private val groupId: UniqueIdentifier, private val notary:
         val builder = TransactionBuilder(notary ?: serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(group)
                 .addCommand(GroupContract.Commands.Exit(requiredSigners), requiredSigners)
+                .addReferenceState(ourMembership.referenced())
         builder.verify(serviceHub)
 
         // collect signatures and finalise transaction

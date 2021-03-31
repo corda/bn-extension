@@ -367,8 +367,9 @@ abstract class MembershipManagementFlowTest(
         val bnService = node.services.cordaService(BNService::class.java)
         if(bnService.getMembershipChangeRequest(requestId) != null) return true
         return false
-
     }
+
+    protected fun SignedTransaction.membershipState() = tx.outputStates.single { it is MembershipState } as MembershipState
 }
 
 @CordaSerializable

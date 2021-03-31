@@ -26,7 +26,7 @@ class SuspendMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val regularMember = regularMembers.first()
         val nonMember = regularMembers[1]
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
         assertFailsWith<MembershipNotFoundException> { runSuspendMembershipFlow(nonMember, membership.linearId) }
@@ -46,7 +46,7 @@ class SuspendMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val membership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         assertFailsWith<IllegalArgumentException> { runSuspendMembershipFlow(authorisedMember, membership.linearId, authorisedMember.identity()) }
@@ -56,7 +56,7 @@ class SuspendMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
     fun `suspend membership flow should fail if it results in insufficient admin permissions in the network`() {
         val authorisedMember = authorisedMembers.first()
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
         assertFailsWith<InvalidBusinessNetworkStateException> { runSuspendMembershipFlow(authorisedMember, authorisedMembership.linearId) }
     }
 
@@ -65,7 +65,7 @@ class SuspendMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+        val (networkId, authorisedMembershipId) = runCreateBusinessNetworkFlow(authorisedMember).membershipState().run {
             networkId to linearId
         }
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
@@ -83,7 +83,7 @@ class SuspendMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorise
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val (membership, command) = runRequestAndSuspendMembershipFlow(regularMember, authorisedMember, networkId).run {
             assertEquals(1, tx.inputs.size)

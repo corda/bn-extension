@@ -26,7 +26,7 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         runRequestMembershipAttributeChangeFlow(regularMember, authorisedMember.identity(), networkId, roles = setOf(ModifyBusinessIdentityPermission()))
@@ -42,7 +42,7 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val firstRegularMember = regularMembers.first()
         val secondRegularMember = regularMembers.last()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(firstRegularMember, authorisedMember, networkId)
         val membershipId = (runRequestAndActivateMembershipFlows(secondRegularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState).linearId
 
@@ -69,7 +69,7 @@ class DeclineMembershipAttributeChangeFlowTest : MembershipManagementFlowTest(nu
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId)
 
         val (request, command) =

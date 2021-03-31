@@ -24,7 +24,7 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
         val regularMember = regularMembers.first()
         val nonMember = regularMembers[1]
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
         assertFailsWith<MembershipNotFoundException> { runRevokeMembershipFlow(nonMember, membership.linearId) }
@@ -44,7 +44,7 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
 
         val membership = runRequestMembershipFlow(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
         assertFailsWith<IllegalArgumentException> { runRevokeMembershipFlow(authorisedMember, membership.linearId, authorisedMember.identity()) }
@@ -54,7 +54,7 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
     fun `revoke membership flow should fail if it results in insufficient admin permissions in the network`() {
         val authorisedMember = authorisedMembers.first()
 
-        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState
+        val authorisedMembership = runCreateBusinessNetworkFlow(authorisedMember).membershipState()
 
         assertFailsWith<InvalidBusinessNetworkStateException> { runRevokeMembershipFlow(authorisedMember, authorisedMembership.linearId) }
     }
@@ -64,7 +64,7 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+        val (networkId, authorisedMembershipId) = runCreateBusinessNetworkFlow(authorisedMember).membershipState().run {
             networkId to linearId
         }
         val regularMembership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
@@ -82,7 +82,7 @@ class RevokeMembershipFlowTest : MembershipManagementFlowTest(numberOfAuthorised
         val authorisedMember = authorisedMembers.first()
         val regularMember = regularMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val membership = runRequestAndActivateMembershipFlows(regularMember, authorisedMember, networkId).tx.outputStates.single() as MembershipState
 
         runRevokeMembershipFlow(authorisedMember, membership.linearId).apply {

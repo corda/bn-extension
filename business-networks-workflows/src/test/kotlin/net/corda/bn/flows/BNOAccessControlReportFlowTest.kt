@@ -31,7 +31,7 @@ class BNOAccessControlReportFlowTest : MembershipManagementFlowTest(numberOfAuth
         val firstRegularMember = regularMembers.first()
         val secondRegularMember = regularMembers.last()
 
-        val (networkId, authorisedMembershipId) = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).run {
+        val (networkId, authorisedMembershipId) = runCreateBusinessNetworkFlow(authorisedMember).membershipState().run {
             networkId to linearId
         }
 

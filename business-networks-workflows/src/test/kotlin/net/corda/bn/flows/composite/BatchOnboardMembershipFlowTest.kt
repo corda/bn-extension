@@ -4,7 +4,6 @@ import net.corda.bn.flows.DummyIdentity
 import net.corda.bn.flows.MembershipManagementFlowTest
 import net.corda.bn.flows.identity
 import net.corda.bn.states.GroupState
-import net.corda.bn.states.MembershipState
 import org.junit.Test
 import java.lang.IllegalStateException
 import kotlin.test.assertEquals
@@ -17,7 +16,7 @@ class BatchOnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuth
     fun `batch onboard membership flow with all members added to the default group`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, businessIdentity = DummyIdentity("dummy-identity")).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember, businessIdentity = DummyIdentity("dummy-identity")).membershipState().networkId
         val defaultGroupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
         val onboardedParties = regularMembers.map { OnboardingInfo(it.identity(), DummyIdentity("dummy-identity")) }.toSet()
@@ -42,7 +41,7 @@ class BatchOnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuth
     fun `batch onboard membership flow with members added to specific groups`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember).membershipState().networkId
         val defaultGroupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
         val onboardedParties = regularMembers.map {
@@ -84,7 +83,7 @@ class BatchOnboardMembershipFlowTest : MembershipManagementFlowTest(numberOfAuth
     fun `batch onboard membership flow with member onboarding subflow fails`() {
         val authorisedMember = authorisedMembers.first()
 
-        val networkId = (runCreateBusinessNetworkFlow(authorisedMember, businessIdentity = DummyIdentity("dummy-identity")).tx.outputStates.single() as MembershipState).networkId
+        val networkId = runCreateBusinessNetworkFlow(authorisedMember, businessIdentity = DummyIdentity("dummy-identity")).membershipState().networkId
         val defaultGroupId = getAllGroupsFromVault(authorisedMember, networkId).single().linearId
 
         // verify flow will not fail if a subflow fails
