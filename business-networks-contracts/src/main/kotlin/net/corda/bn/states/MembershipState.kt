@@ -39,8 +39,13 @@ data class MembershipState(
     override fun generateMappedObject(schema: MappedSchema) = when (schema) {
         is MembershipStateSchemaV1 -> MembershipStateSchemaV1.PersistentMembershipState(
                 cordaIdentity = identity.cordaIdentity,
+                businessIdentity = identity.businessIdentity?.toString(),
                 networkId = networkId,
-                status = status
+                status = status,
+                issuer = issuer,
+                issued = issued,
+                modified = modified
+
         )
         else -> throw IllegalArgumentException("Unrecognised schema $schema")
     }
