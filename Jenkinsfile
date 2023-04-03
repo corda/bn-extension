@@ -36,6 +36,7 @@ pipeline {
         ARTIFACTORY_BUILD_NAME = "DisasterRecovery/Jenkins/${!isRelease?"snapshot/":""}${env.BRANCH_NAME}".replaceAll("/", " :: ")
         PUBLISH_REPO = "${isRelease?"corda-releases":"corda-dev"}"
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
+        SNYK_TOKEN = credentials("corda4-os-snyk-secret")
     }
 
     stages {
@@ -54,36 +55,46 @@ pipeline {
                 sh "./gradlew clean integrationTest --info"
             }
         }
-        stage('Publish to Artifactory') {
-            when {
-                expression { params.DO_PUBLISH }
-                beforeAgent true
-            }
+        stage('Snyk Security') {
+            // when {
+            //     expression { gitUtils.isReleaseTag() || gitUtils.isReleaseCandidate() || gitUtils.isReleaseBranch() }
+            // }
             steps {
-                rtServer(
-                        id: 'R3-Artifactory',
-                        url: 'https://software.r3.com/artifactory',
-                        credentialsId: 'artifactory-credentials'
-                )
-                rtGradleDeployer(
-                        id: 'deployer',
-                        serverId: 'R3-Artifactory',
-                        repo: env.PUBLISH_REPO
-                )
-                rtGradleRun(
-                        usesPlugin: true,
-                        useWrapper: true,
-                        switches: '-s --info',
-                        tasks: 'artifactoryPublish',
-                        deployerId: 'deployer',
-                        buildName: env.ARTIFACTORY_BUILD_NAME
-                )
-                rtPublishBuildInfo(
-                        serverId: 'R3-Artifactory',
-                        buildName: env.ARTIFACTORY_BUILD_NAME
-                )
+                script {
+                    snykSecurityScan(env.SNYK_TOKEN, "--sub-project=business-networks-contracts --configuration-matching='^runtimeClasspath\$' --prune-repeated-subdependencies --debug --target-reference='${env.BRANCH_NAME}' --project-tags=Branch='${env.BRANCH_NAME.replaceAll("[^0-9|a-z|A-Z]+","_")}'", false, true)
+                }
             }
         }
+        // stage('Publish to Artifactory') {
+        //     when {
+        //         expression { params.DO_PUBLISH }
+        //         beforeAgent true
+        //     }
+        //     steps {
+        //         rtServer(
+        //                 id: 'R3-Artifactory',
+        //                 url: 'https://software.r3.com/artifactory',
+        //                 credentialsId: 'artifactory-credentials'
+        //         )
+        //         rtGradleDeployer(
+        //                 id: 'deployer',
+        //                 serverId: 'R3-Artifactory',
+        //                 repo: env.PUBLISH_REPO
+        //         )
+        //         rtGradleRun(
+        //                 usesPlugin: true,
+        //                 useWrapper: true,
+        //                 switches: '-s --info',
+        //                 tasks: 'artifactoryPublish',
+        //                 deployerId: 'deployer',
+        //                 buildName: env.ARTIFACTORY_BUILD_NAME
+        //         )
+        //         rtPublishBuildInfo(
+        //                 serverId: 'R3-Artifactory',
+        //                 buildName: env.ARTIFACTORY_BUILD_NAME
+        //         )
+        //     }
+        // }
     }
 
     post {
