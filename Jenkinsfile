@@ -11,8 +11,13 @@
  */
 @Library('existing-build-control')
 import static com.r3.build.BuildControl.killAllExistingBuildsForJob
+import com.r3.build.utils.GitUtils
+import groovy.transform.Field
 
 killAllExistingBuildsForJob(env.JOB_NAME, env.BUILD_NUMBER.toInteger())
+
+@Field
+GitUtils gitUtils = new GitUtils(this)
 
 /**
  * Sense environment
