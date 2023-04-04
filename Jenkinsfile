@@ -37,6 +37,7 @@ pipeline {
         PUBLISH_REPO = "${isRelease?"corda-releases":"corda-dev"}"
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
         SNYK_TOKEN = credentials("corda4-os-snyk-secret")
+        C4_OS_SNYK_ORG_ID = credentials("corda4-os-snyk-org-id")
     }
 
     stages {
@@ -62,6 +63,22 @@ pipeline {
             steps {
                 script {
                     snykSecurityScan(env.SNYK_TOKEN, "--sub-project=business-networks-contracts --configuration-matching='^runtimeClasspath\$' --prune-repeated-subdependencies --debug --target-reference='${env.BRANCH_NAME}' --project-tags=Branch='${env.BRANCH_NAME.replaceAll("[^0-9|a-z|A-Z]+","_")}'", false, true)
+                }
+            }
+        }
+        stage('Generate Snyk License Report') {
+            options { retry(2) }
+            // when {
+            //     expression { gitUtils.isReleaseTag() || gitUtils.isReleaseCandidate() || gitUtils.isReleaseBranch() }
+            // }
+            steps {
+                snykLicenseGeneration(env.SNYK_TOKEN, env.C4_OS_SNYK_ORG_ID)
+            }
+            post {
+                always {
+                    script {
+                        archiveArtifacts artifacts: 'snyk-license-report/*-snyk-license-report.html', allowEmptyArchive: true, fingerprint: true
+                    }
                 }
             }
         }
