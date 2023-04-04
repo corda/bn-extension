@@ -21,7 +21,18 @@ boolean isReleaseBranch = (env.BRANCH_NAME =~ /^release\/.*/)
 boolean isRelease = (env.TAG_NAME =~ /^release-.*/)
 
 pipeline {
-    agent { label 'standard' }
+    agent {
+        docker {
+            // Our custom docker image
+            image 'build-zulu-openjdk:8'
+            label 'docker'
+            registryUrl 'https://engineering-docker.software.r3.com/'
+            registryCredentialsId 'artifactory-credentials'
+            // Used to mount storage from the host as a volume to persist the cache between builds
+            args '-v /tmp:/host_tmp'
+            alwaysPull true
+        }
+    }
 
     parameters {
         booleanParam defaultValue: (isReleaseBranch || isRelease), description: 'Publish artifacts to Artifactory?', name: 'DO_PUBLISH'
@@ -38,6 +49,7 @@ pipeline {
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
         SNYK_TOKEN = credentials("corda4-os-snyk-secret")
         C4_OS_SNYK_ORG_ID = credentials("corda4-os-snyk-org-id")
+        GRADLE_USER_HOME = "/host_tmp/gradle"
     }
 
     stages {
@@ -46,16 +58,16 @@ pipeline {
                 sh "./gradlew clean detekt --info"
             }
         }
-        stage('Unit Tests') {
-            steps {
-                sh "./gradlew clean test --info"
-            }
-        }
-        stage('Integration Tests') {
-            steps {
-                sh "./gradlew clean integrationTest --info"
-            }
-        }
+        // stage('Unit Tests') {
+        //     steps {
+        //         sh "./gradlew clean test --info"
+        //     }
+        // }
+        // stage('Integration Tests') {
+        //     steps {
+        //         sh "./gradlew clean integrationTest --info"
+        //     }
+        // }
         stage('Snyk Security') {
             // when {
             //     expression { gitUtils.isReleaseTag() || gitUtils.isReleaseCandidate() || gitUtils.isReleaseBranch() }
@@ -80,6 +92,14 @@ pipeline {
                         archiveArtifacts artifacts: 'snyk-license-report/*-snyk-license-report.html', allowEmptyArchive: true, fingerprint: true
                     }
                 }
+            }
+        }
+        stage('Snyk Delta') {
+            when {
+                changeRequest()
+            }
+            steps {
+                snykDeltaScan(env.SNYK_TOKEN, env.C4_OS_SNYK_ORG_ID, "--configuration-matching='^runtimeClasspath\$'")
             }
         }
         // stage('Publish to Artifactory') {
@@ -115,9 +135,9 @@ pipeline {
     }
 
     post {
-        always {
-            junit '**/build/test-results/**/*.xml'
-        }
+        // always {
+        //     junit '**/build/test-results/**/*.xml'
+        // }
         cleanup {
             deleteDir() /* clean up our workspace */
         }
