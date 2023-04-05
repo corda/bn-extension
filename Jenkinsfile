@@ -9,7 +9,7 @@
  * unfinished builds are not required.
  * This feature doesn't play well with disableConcurrentBuilds() option
  */
-@Library('corda-shared-build-pipeline-steps@5.0.1') _
+@Library('existing-build-control')
 import static com.r3.build.BuildControl.killAllExistingBuildsForJob
 import com.r3.build.utils.GitUtils
 import groovy.transform.Field
