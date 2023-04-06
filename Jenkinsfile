@@ -79,7 +79,10 @@ pipeline {
             }
             steps {
                 script {
-                    snykSecurityScan(env.SNYK_TOKEN, "--sub-project=business-networks-contracts --configuration-matching='^runtimeClasspath\$' --prune-repeated-subdependencies --debug --target-reference='${env.BRANCH_NAME}' --project-tags=Branch='${env.BRANCH_NAME.replaceAll("[^0-9|a-z|A-Z]+","_")}'", false, true)
+                    def modulesToScan = ['business-networks-contracts', 'business-networks-workflows']
+                    modulesToScan.each { module ->
+                        snykSecurityScan(env.SNYK_TOKEN, "--sub-project=$module --configuration-matching='^runtimeClasspath\$' --prune-repeated-subdependencies --debug --target-reference='${env.BRANCH_NAME}' --project-tags=Branch='${env.BRANCH_NAME.replaceAll("[^0-9|a-z|A-Z]+","_")}'", false, true)
+                    }
                 }
             }
         }
