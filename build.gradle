@@ -15,15 +15,16 @@ buildscript {
         log4j_version = constants.getProperty("log4jVersion")
         slf4j_version = constants.getProperty("slf4jVersion")
         corda_platform_version = constants.getProperty("platformVersion")
+        publicArtifactURL='https://download.corda.net/maven'
     }
 
     repositories {
         mavenLocal()
         mavenCentral()
         jcenter()
-        maven { url "$artifactoryContextUrl/corda" }
-        maven { url "$artifactoryContextUrl/corda-releases" }
-        maven { url "$artifactoryContextUrl/corda-dev" }
+        maven { url "$publicArtifactURL/corda-dependencies" }
+        maven { url "$publicArtifactURL/corda-releases" }
+        maven { url "$publicArtifactURL/corda-dev" }
         maven { url 'https://repo.gradle.org/gradle/libs-releases' }
     }
 
@@ -75,9 +76,9 @@ allprojects {
         jcenter()
         mavenCentral()
         maven { url 'https://jitpack.io' }
-        maven { url "$artifactoryContextUrl/corda" }
-        maven { url "$artifactoryContextUrl/corda-releases" }
-        maven { url "$artifactoryContextUrl/corda-dev" }
+        maven { url "$publicArtifactURL/corda-dependencies" }
+        maven { url "$publicArtifactURL/corda-releases" }
+        maven { url "$publicArtifactURL/corda-dev" }
 
         // Required to resolve dependencies for corda-node-driver 4.1+
         maven { url "https://repo.gradle.org/gradle/libs-releases-local" }
