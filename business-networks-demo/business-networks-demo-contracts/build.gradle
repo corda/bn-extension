@@ -3,15 +3,14 @@ description 'Corda Business Networks Integration Demo - contracts'
 dependencies {
     cordapp project(':business-networks-contracts')
 
-    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
-        exclude group: 'co.paralleluniverse', module: 'quasar-core'
-    }
-    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
-        exclude group: 'co.paralleluniverse', module: 'quasar-core'
-    }
-    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
-    testCompile "com.nhaarman:mockito-kotlin:$mockitoKotlinVersion"
-    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    cordaProvided "$cordaReleaseGroup:corda-core:$cordaVersion"
+    testImplementation "$cordaReleaseGroup:corda-test-utils:$cordaVersion"
+    testImplementation("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion")
+    testImplementation("$cordaReleaseGroup:corda-node-driver:$cordaVersion")
+
+    testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "junit:junit:$junitVersion"
 }
 
@@ -24,4 +23,8 @@ cordapp {
         vendor "R3"
         licence "Open Source (Apache 2)"
     }
+}
+
+test {
+    jvmArgs = rootProject.ext.testJvmArgs
 }

@@ -32,6 +32,7 @@ import org.junit.After
 import org.junit.Before
 import java.nio.file.Path
 import java.security.PublicKey
+import kotlin.io.path.div
 import kotlin.test.assertNotNull
 
 abstract class MembershipManagementFlowTest(

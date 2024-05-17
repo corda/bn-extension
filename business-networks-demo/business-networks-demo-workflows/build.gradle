@@ -1,18 +1,24 @@
+apply plugin: 'net.corda.plugins.quasar-utils'
+
 description 'Corda Business Networks Integration Demo - workflows'
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+
+    cordaProvided "$cordaReleaseGroup:corda-core:$cordaVersion"
 
     // Corda integration dependencies
     cordapp project(':business-networks-workflows')
+    cordapp project(':business-networks-contracts')
     cordapp project(':business-networks-demo:business-networks-demo-contracts')
 
-    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+    testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
 
-    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
+    testImplementation("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
     }
-    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
+
+    testImplementation("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
         exclude group: 'co.paralleluniverse', module: 'quasar-core'
     }
 }
@@ -26,4 +32,8 @@ cordapp {
         vendor "R3"
         licence "Open Source (Apache 2)"
     }
+}
+
+test {
+    jvmArgs = rootProject.ext.testJvmArgs
 }

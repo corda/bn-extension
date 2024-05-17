@@ -1,3 +1,9 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+import static org.gradle.api.JavaVersion.VERSION_17
+import static org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+import static org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+
 buildscript {
     Properties constants = new Properties()
     file("$projectDir/gradle.properties").withInputStream { constants.load(it) }
@@ -5,7 +11,7 @@ buildscript {
     ext {
         corda_release_group = constants.getProperty("cordaReleaseGroup")
         corda_release_version = constants.getProperty("cordaVersion")
-        corda_core_release_group =  constants.getProperty("cordaReleaseGroup")
+        corda_core_release_group = constants.getProperty("cordaReleaseGroup")
         corda_core_release_version = constants.getProperty("cordaVersion")
         corda_gradle_plugins_version = constants.getProperty("cordaGradlePluginsVersion")
         kotlin_version = constants.getProperty("kotlinVersion")
@@ -15,7 +21,14 @@ buildscript {
         log4j_version = constants.getProperty("log4jVersion")
         slf4j_version = constants.getProperty("slf4jVersion")
         corda_platform_version = constants.getProperty("platformVersion")
-        publicArtifactURL=constants.getProperty('publicArtifactLocation')
+        publicArtifactURL = constants.getProperty('publicArtifactLocation')
+
+        testJvmArgs = ['--add-opens', 'java.base/java.time=ALL-UNNAMED', '--add-opens', 'java.base/java.io=ALL-UNNAMED',
+                       '--add-opens', 'java.base/java.util=ALL-UNNAMED', '--add-opens', 'java.base/java.net=ALL-UNNAMED',
+                       '--add-opens', 'java.base/java.nio=ALL-UNNAMED', '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
+                       '--add-opens', 'java.base/java.security.cert=ALL-UNNAMED', '--add-opens', 'java.base/java.security=ALL-UNNAMED',
+                       '--add-opens', 'java.base/javax.net.ssl=ALL-UNNAMED', '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+                       '--add-opens', 'java.base/java.util.concurrent=ALL-UNNAMED', '--add-opens', 'java.sql/java.sql=ALL-UNNAMED',]
     }
 
     repositories {
@@ -38,17 +51,17 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.artifactory" version "4.7.5"
+    id 'maven-publish'
 }
 
 // You can define this property in ~/.gradle/gradle.properties on your dev box.
-if (! project.hasProperty('cordaArtifactoryUsername') || ext.cordaArtifactoryUsername != null) {
+if (!project.hasProperty('cordaArtifactoryUsername') || ext.cordaArtifactoryUsername != null) {
     ext.cordaArtifactoryUsername = System.getenv('CORDA_ARTIFACTORY_USERNAME')
             ?: System.getProperty('corda.artifactory.username')
 }
 
 // You can define this property in ~/.gradle/gradle.properties on your dev box.
-if (! project.hasProperty('cordaArtifactoryPassword') || ext.cordaArtifactoryPassword == null) {
+if (!project.hasProperty('cordaArtifactoryPassword') || ext.cordaArtifactoryPassword == null) {
     ext.cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD')
             ?: System.getProperty('corda.artifactory.password')
 }
@@ -58,6 +71,8 @@ allprojects {
     apply plugin: 'idea'
     apply plugin: 'net.corda.plugins.quasar-utils'
     apply plugin: 'net.corda.plugins.cordapp'
+    apply plugin: 'org.jetbrains.kotlin.jvm'
+    apply plugin: 'maven-publish'
     apply plugin: 'net.corda.plugins.cordformation'
 
     version projectVersion
@@ -79,53 +94,57 @@ allprojects {
         maven { url "$publicArtifactURL/corda-dependencies" }
         maven { url "$publicArtifactURL/corda-releases" }
         maven { url "$publicArtifactURL/corda-dev" }
+        maven { url "$publicArtifactURL/corda-lib-dev" }
 
         // Required to resolve dependencies for corda-node-driver 4.1+
         maven { url "https://repo.gradle.org/gradle/libs-releases-local" }
     }
 
-    dependencies {
-        implementation "org.jetbrains.kotlin:kotlin-reflect"
-        implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-
-        dependencies {
-            // Corda dependencies.
-            cordaCompile("$cordaReleaseGroup:corda-core:$cordaVersion") {
-                exclude group: 'co.paralleluniverse', module: 'quasar-core'
-            }
-            cordaCompile("$cordaReleaseGroup:corda-node-api:$cordaVersion") {
-                exclude group: 'co.paralleluniverse', module: 'quasar-core'
-            }
-            cordaRuntime "$cordaReleaseGroup:corda:$cordaVersion"
-            cordaCompile "net.corda:corda-jackson:$corda_release_version"
-        }
-    }
-
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-        kotlinOptions {
-            languageVersion = "1.2"
-            apiVersion = "1.2"
-            jvmTarget = "1.8"
+    tasks.withType(KotlinCompile).configureEach {
+        compilerOptions {
+            languageVersion = KOTLIN_1_9
+            apiVersion = KOTLIN_1_9
+            jvmTarget = JVM_17
             javaParameters = true   // Useful for reflection.
-            freeCompilerArgs = ['-Xjvm-default=compatibility']
+            freeCompilerArgs = ['-Xjvm-default=all-compatibility']
         }
     }
+    java {
+        sourceCompatibility = VERSION_17
+        targetCompatibility = VERSION_17
+    }
+
+    compileJava {
+        options.compilerArgs << '-parameters'
+    }
+}
+apply plugin: 'org.jetbrains.kotlin.jvm'
+
+dependencies {
+    cordaProvided "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
+    // Corda dependencies.
+    cordaProvided("$cordaReleaseGroup:corda-core:$cordaVersion") {
+        exclude group: 'co.paralleluniverse', module: 'quasar-core'
+    }
+    cordaBootstrapper("$cordaReleaseGroup:corda-node-api:$cordaVersion") {
+        exclude group: "ch.qos.logback", module: "logback-classic"
+    }
+    corda "$cordaReleaseGroup:corda:$cordaVersion"
+    cordaProvided "net.corda:corda-jackson:$corda_release_version"
 }
 
 def publishProjects = subprojects
 
-configure(publishProjects) { subproject ->
-    apply plugin: 'kotlin'
-    apply plugin: 'maven-publish'
-    apply plugin: 'com.jfrog.artifactory'
+configure(publishProjects) { Project subproject ->
 
     task sourceJar(type: Jar, dependsOn: subproject.classes) {
-        classifier = 'sources'
+        archiveClassifier = 'sources'
         from sourceSets.main.allSource
     }
 
     task javadocJar(type: Jar, dependsOn: subproject.javadoc) {
-        classifier = 'javadoc'
+        archiveClassifier = 'javadoc'
         from javadoc.destinationDir
     }
 
@@ -135,7 +154,7 @@ configure(publishProjects) { subproject ->
         publications {
             if (!subproject.name.endsWith("demo")) {
                 create(subproject.name, MavenPublication) {
-                    from components.java
+                    from components.findByName('java')
                     groupId subproject.group
                     artifactId subproject.name
                     artifact tasks.sourceJar
@@ -157,27 +176,8 @@ configure(publishProjects) { subproject ->
     }
 }
 
-
-artifactory {
-    publish {
-        contextUrl = ext.artifactoryContextUrl
-        repository {
-            repoKey = System.getenv('CORDA_ARTIFACTORY_REPOKEY') ?: System.getProperty('corda.artifactory.repokey', 'corda-dev')
-            username = cordaArtifactoryUsername
-            password = cordaArtifactoryPassword
-        }
-
-        defaults {
-            if (publishProjects.contains(project)) {
-                publications(project.name)
-            }
-        }
-    }
-}
-
-
 wrapper {
-    gradleVersion = "6.1.1"
+    gradleVersion = "7.6"
     distributionType = Wrapper.DistributionType.ALL
 }
 
@@ -187,12 +187,8 @@ dependencies {
 }
 
 cordapp {
-    info {
-        name "Business Networks Showcase"
-        vendor "Corda Open Source"
-        targetPlatformVersion cordaPlatformVersion.toInteger()
-        minimumPlatformVersion cordaPlatformVersion.toInteger()
-    }
+    targetPlatformVersion cordaPlatformVersion.toInteger()
+    minimumPlatformVersion cordaPlatformVersion.toInteger()
 }
 
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
