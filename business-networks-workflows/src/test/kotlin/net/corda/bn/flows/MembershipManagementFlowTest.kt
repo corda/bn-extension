@@ -23,11 +23,7 @@ import net.corda.nodeapi.internal.DEV_CA_KEY_STORE_PASS
 import net.corda.nodeapi.internal.crypto.X509Utilities
 import net.corda.nodeapi.internal.storeLegalIdentity
 import net.corda.testing.common.internal.testNetworkParameters
-import net.corda.testing.node.internal.InternalMockNetwork
-import net.corda.testing.node.internal.InternalMockNodeParameters
-import net.corda.testing.node.internal.TestCordappImpl
-import net.corda.testing.node.internal.TestStartedNode
-import net.corda.testing.node.internal.startFlow
+import net.corda.testing.node.internal.*
 import org.junit.After
 import org.junit.Before
 import java.nio.file.Path
@@ -47,8 +43,8 @@ abstract class MembershipManagementFlowTest(
     @Before
     fun setUp() {
         mockNetwork = InternalMockNetwork(cordappsForAllNodes = listOf(
-                TestCordappImpl(scanPackage = "net.corda.bn.contracts", config = emptyMap()),
-                TestCordappImpl(scanPackage = "net.corda.bn.flows", config = emptyMap())
+            ScanPackageTestCordapp( "net.corda.bn.contracts"),
+            ScanPackageTestCordapp("net.corda.bn.flows")
         ), initialNetworkParameters = testNetworkParameters(minimumPlatformVersion = 9))
 
         authorisedMembers = (0 until numberOfAuthorisedMembers).mapIndexed { idx, _ ->
@@ -312,7 +308,7 @@ abstract class MembershipManagementFlowTest(
     }
 
 
-    private fun addMemberToInitialGroup(initiator: TestStartedNode, networkId: String, membership: MembershipState, notary: Party?) {    
+    private fun addMemberToInitialGroup(initiator: TestStartedNode, networkId: String, membership: MembershipState, notary: Party?) {
         val bnService = initiator.services.cordaService(BNService::class.java)
         val group = bnService.getAllBusinessNetworkGroups(networkId).minBy { it.state.data.issued }?.state?.data
         assertNotNull(group)
