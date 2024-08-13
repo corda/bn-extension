@@ -38,7 +38,7 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.artifactory" version "4.7.5"
+    id "com.jfrog.artifactory" version "4.16.1"
 }
 
 // You can define this property in ~/.gradle/gradle.properties on your dev box.
