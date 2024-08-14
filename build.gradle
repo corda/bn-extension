@@ -21,11 +21,11 @@ buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
-        jcenter()
         maven { url "$publicArtifactURL/corda-dependencies" }
         maven { url "$publicArtifactURL/corda-releases" }
         maven { url "$publicArtifactURL/corda-dev" }
         maven { url 'https://repo.gradle.org/gradle/libs-releases' }
+        maven { url "${publicArtifactURL}/jcenter-backup" }
     }
 
     dependencies {
@@ -38,7 +38,7 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.artifactory" version "4.7.5"
+    id "com.jfrog.artifactory" version "4.16.1"
 }
 
 // You can define this property in ~/.gradle/gradle.properties on your dev box.
@@ -73,12 +73,12 @@ allprojects {
 
     repositories {
         mavenLocal()
-        jcenter()
         mavenCentral()
         maven { url 'https://jitpack.io' }
         maven { url "$publicArtifactURL/corda-dependencies" }
         maven { url "$publicArtifactURL/corda-releases" }
         maven { url "$publicArtifactURL/corda-dev" }
+        maven { url "${publicArtifactURL}/jcenter-backup" }
 
         // Required to resolve dependencies for corda-node-driver 4.1+
         maven { url "https://repo.gradle.org/gradle/libs-releases-local" }
