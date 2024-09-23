@@ -111,7 +111,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(linearIdCriteria(requestId))
 
         val states = serviceHub.vaultService.queryBy<ChangeRequestState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.apply {
+        return states.maxByOrNull { it.state.data.modified }?.apply {
             check(ourIdentity in state.data.participants) { "Caller is not authorised to access data for this request." }
 
         }
@@ -135,7 +135,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(membershipNetworkIdCriteria(networkId))
                 .and(identityCriteria(party))
         val states = serviceHub.vaultService.queryBy<MembershipState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.apply {
+        return states.maxByOrNull { it.state.data.modified }?.apply {
             check(ourIdentity in state.data.participants) { "Caller is not part of any Business Network Group that $party is part of" }
         }
     }
@@ -154,7 +154,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(linearIdCriteria(linearId))
         val states = serviceHub.vaultService.queryBy<MembershipState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.apply {
+        return states.maxByOrNull { it.state.data.modified }?.apply {
             check(isBusinessNetworkMember(state.data.networkId, ourIdentity)) { "Caller is not member of the Business Network with ${state.data.networkId} ID" }
             check(ourIdentity in state.data.participants) { "Caller is not part of any Business Network Group that ${state.data.identity.cordaIdentity} is part of" }
         }
@@ -222,7 +222,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
     fun businessNetworkGroupExists(groupId: UniqueIdentifier): Boolean {
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
                 .and(linearIdCriteria(groupId))
-        val state = serviceHub.vaultService.queryBy<GroupState>(criteria).states.map { it.state.data }.maxBy { it.modified }
+        val state = serviceHub.vaultService.queryBy<GroupState>(criteria).states.map { it.state.data }.maxByOrNull { it.modified }
         return state != null && ourIdentity in state.participants
     }
 
@@ -241,7 +241,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
                 .and(groupNetworkIdCriteria(networkId))
                 .and(groupNameCriteria(groupName))
-        val state = serviceHub.vaultService.queryBy<GroupState>(criteria).states.map { it.state.data }.maxBy { it.modified }
+        val state = serviceHub.vaultService.queryBy<GroupState>(criteria).states.map { it.state.data }.maxByOrNull { it.modified }
         return state != null && ourIdentity in state.participants
     }
 
@@ -258,7 +258,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(linearIdCriteria(groupId))
         val states = serviceHub.vaultService.queryBy<GroupState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.apply {
+        return states.maxByOrNull { it.state.data.modified }?.apply {
             check(ourIdentity in state.data.participants) { "Caller is not part of the Business Network Group with $groupId ID" }
         }
     }
@@ -281,7 +281,7 @@ class BNService(private val serviceHub: AppServiceHub) : SingletonSerializeAsTok
                 .and(groupNetworkIdCriteria(networkId))
                 .and(groupNameCriteria(groupName))
         val states = serviceHub.vaultService.queryBy<GroupState>(criteria).states
-        return states.maxBy { it.state.data.modified }?.apply {
+        return states.maxByOrNull { it.state.data.modified }?.apply {
             check(ourIdentity in state.data.participants) { "Caller is not part of the Business Network Group with $groupName name" }
         }
     }

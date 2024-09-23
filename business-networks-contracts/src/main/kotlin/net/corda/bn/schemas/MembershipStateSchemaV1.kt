@@ -27,10 +27,13 @@ object MembershipStateSchemaV1 : MappedSchema(schemaFamily = MembershipState::cl
     @Table(name = "membership_state")
     class PersistentMembershipState(
             @Column(name = "corda_identity")
-            val cordaIdentity: Party,
+            var cordaIdentity: Party? = null,
             @Column(name = "network_id")
-            val networkId: String,
+            var networkId: String = "",
             @Column(name = "status")
-            val status: MembershipStatus
-    ) : PersistentState()
+            var status: MembershipStatus = MembershipStatus.PENDING
+    ) : PersistentState() {
+        // Hibernate requires this no-argument constructor
+        constructor() : this(null, "", MembershipStatus.PENDING)
+    }
 }

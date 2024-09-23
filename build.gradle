@@ -34,7 +34,6 @@ buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
-        jcenter()
         maven { url "$publicArtifactURL/corda-dependencies" }
         maven { url "$publicArtifactURL/corda-releases" }
         maven { url "$publicArtifactURL/corda-dev" }
@@ -88,7 +87,6 @@ allprojects {
 
     repositories {
         mavenLocal()
-        jcenter()
         mavenCentral()
         maven { url 'https://jitpack.io' }
         maven { url "$publicArtifactURL/corda-dependencies" }

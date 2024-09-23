@@ -104,7 +104,7 @@ class UpdateCordaIdentityFlow(
     private fun getMembership(linearId: UniqueIdentifier): StateAndRef<MembershipState> {
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(QueryCriteria.LinearStateQueryCriteria(linearId = listOf(linearId)))
-        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.maxBy { it.state.data.modified }
+        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.maxByOrNull { it.state.data.modified }
                 ?: throw MembershipNotFoundException("Membership state with $linearId linear ID doesn't exist")
     }
 
@@ -112,7 +112,7 @@ class UpdateCordaIdentityFlow(
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::networkId.equal(networkId) }))
                 .and(QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::cordaIdentity.equal(party) }))
-        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.maxBy { it.state.data.modified }
+        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states.maxByOrNull { it.state.data.modified }
                 ?: throw MembershipNotFoundException("$party is not member of a Business Network with $networkId network ID")
     }
 
