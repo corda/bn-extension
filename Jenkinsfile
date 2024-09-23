@@ -29,7 +29,7 @@ pipeline {
     agent {
         docker {
             // Our custom docker image
-            image 'build-zulu-openjdk:8'
+            image 'build-zulu-openjdk:17'
             label 'docker'
             registryUrl 'https://engineering-docker.software.r3.com/'
             registryCredentialsId 'artifactory-credentials'
@@ -55,7 +55,6 @@ pipeline {
         SNYK_TOKEN = credentials("corda4-os-snyk-secret")
         C4_OS_SNYK_ORG_ID = credentials("corda4-os-snyk-org-id")
         GRADLE_USER_HOME = "/host_tmp/gradle"
-        JAVA_HOME="/usr/lib/jvm/java-17-amazon-corretto"
     }
 
     stages {
