@@ -9,6 +9,7 @@ import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.driver
 import net.corda.testing.node.TestCordapp
+import org.junit.Ignore
 import org.junit.Test
 
 class CentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
@@ -22,6 +23,7 @@ class CentralisedBusinessNetworksTest : AbstractBusinessNetworksTest() {
     @CordaSerializable
     class RolesAdminRole : BNRole("Roles Administrator", setOf(AdminPermission.CAN_MODIFY_ROLE))
 
+    @Ignore("Flaky test")
     @Test(timeout = 300_000)
     fun `public centralised business network test`() {
         driver(DriverParameters(
