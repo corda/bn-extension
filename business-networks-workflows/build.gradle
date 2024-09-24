@@ -26,8 +26,8 @@ sourceSets {
 
 configurations {
     testArtifacts.extendsFrom testImplementation
-    integrationTestCompile.extendsFrom testImplementation
-    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntime.extendsFrom testRuntime
 }
 
 dependencies {
@@ -41,7 +41,7 @@ dependencies {
     }
     cordaProvided ("$cordaReleaseGroup:corda-node:$cordaVersion")
 
-        cordaProvided "$cordaReleaseGroup:corda-core:$cordaVersion"
+    cordaProvided "$cordaReleaseGroup:corda-core:$cordaVersion"
     cordaProvided "$cordaReleaseGroup:corda-jackson:$cordaVersion"
 
     testImplementation("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
@@ -60,14 +60,41 @@ dependencies {
     cordaProvided "com.fasterxml.jackson.module:jackson-module-kotlin:2.15.3"
 }
 
+quasar {
+    excludePackages.addAll(
+            "antlr**",
+            "com.codahale**",
+            "com.fasterxml.**",
+            "com.github.benmanes.caffeine.**",
+            "com.google.**",
+            "com.lmax.**",
+            "com.zaxxer.**",
+            "net.bytebuddy**",
+            "io.github.classgraph**",
+            "io.netty*",
+            "liquibase**",
+            "net.i2p.crypto.**",
+            "nonapi.io.github.classgraph.**",
+            "org.apiguardian.**",
+            "org.bouncycastle**",
+            "org.codehaus.**",
+            "org.h2**",
+            "org.hibernate**",
+            "org.jboss.**",
+            "org.objenesis**",
+            "org.w3c.**",
+            "org.xml**",
+            "org.yaml**",
+            "rx**",
+            "kotlin**"
+    )
+}
+
 test.maxHeapSize = "2g"
 
 task integrationTest(type: Test, dependsOn: []) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
     maxHeapSize = "2g"
-}
-
-test {
-    jvmArgs = rootProject.ext.testJvmArgs
+    jvmArgs testJvmArgs
 }
