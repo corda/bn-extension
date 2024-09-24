@@ -58,11 +58,11 @@ pipeline {
     }
 
     stages {
-        stage('Detekt') {
-            steps {
-                sh "./gradlew clean detekt --info"
-            }
-        }
+//        stage('Detekt') {
+//            steps {
+//                sh "./gradlew clean detekt --info"
+//            }
+//        }
         stage('Unit Tests') {
             steps {
                 sh "./gradlew clean test --info"

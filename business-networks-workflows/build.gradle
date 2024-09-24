@@ -98,3 +98,7 @@ task integrationTest(type: Test, dependsOn: []) {
     maxHeapSize = "2g"
     jvmArgs testJvmArgs
 }
+
+test {
+    jvmArgs = testJvmArgs
+}
