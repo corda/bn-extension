@@ -32,8 +32,5 @@ object MembershipStateSchemaV1 : MappedSchema(schemaFamily = MembershipState::cl
             var networkId: String = "",
             @Column(name = "status")
             var status: MembershipStatus = MembershipStatus.PENDING
-    ) : PersistentState() {
-        // Hibernate requires this no-argument constructor
-        constructor() : this(null, "", MembershipStatus.PENDING)
-    }
+    ) : PersistentState()
 }

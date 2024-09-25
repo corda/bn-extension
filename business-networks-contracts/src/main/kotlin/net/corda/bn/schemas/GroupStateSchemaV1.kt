@@ -25,8 +25,5 @@ object GroupStateSchemaV1 : MappedSchema(schemaFamily = GroupState::class.java, 
             var networkId: String = "",
             @Column(name = "name")
             var name: String? = null
-    ) : PersistentState() {
-        // Hibernate requires this no-argument constructor
-        constructor() : this("", null)
-    }
+    ) : PersistentState()
 }
