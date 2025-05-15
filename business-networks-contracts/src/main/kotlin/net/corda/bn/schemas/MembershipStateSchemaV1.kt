@@ -25,12 +25,21 @@ object MembershipStateSchemaV1 : MappedSchema(schemaFamily = MembershipState::cl
      */
     @Entity
     @Table(name = "membership_state")
-    class PersistentMembershipState(
-            @Column(name = "corda_identity")
-            var cordaIdentity: Party? = null,
-            @Column(name = "network_id")
-            var networkId: String? = null,
-            @Column(name = "status")
-            var status: MembershipStatus? = null
-    ) : PersistentState()
+    class PersistentMembershipState() : PersistentState() {
+        constructor(
+                cordaIdentity: Party,
+                networkId: String,
+                status: MembershipStatus
+        ) : this() {
+            this.cordaIdentity = cordaIdentity
+            this.networkId = networkId
+            this.status = status
+        }
+        @Column(name = "corda_identity")
+        lateinit var cordaIdentity: Party
+        @Column(name = "network_id")
+        lateinit var networkId: String
+        @Column(name = "status")
+        lateinit var status: MembershipStatus
+    }
 }
