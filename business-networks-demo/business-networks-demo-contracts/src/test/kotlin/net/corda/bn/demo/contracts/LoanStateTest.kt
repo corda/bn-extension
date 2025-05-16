@@ -1,7 +1,7 @@
 package net.corda.bn.demo.contracts
 
-import com.nhaarman.mockito_kotlin.mock
 import org.junit.Test
+import org.mockito.Mockito.mock
 import kotlin.test.assertEquals
 
 class LoanStateTest {

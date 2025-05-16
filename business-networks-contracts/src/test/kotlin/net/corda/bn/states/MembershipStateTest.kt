@@ -1,7 +1,7 @@
 package net.corda.bn.states
 
-import com.nhaarman.mockito_kotlin.mock
 import org.junit.Test
+import org.mockito.Mockito.mock
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 

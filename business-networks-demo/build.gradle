@@ -1,9 +1,18 @@
+import static org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+import static org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+import static org.gradle.api.JavaVersion.VERSION_17
+
 apply plugin: 'net.corda.plugins.cordformation'
 
 description 'Corda Business Networks Integration demo'
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+
+    cordaBootstrapper ("$corda_release_group:corda-node-api:$corda_release_version") {
+        exclude group: "ch.qos.logback", module: "logback-classic"
+    }
+    corda "$corda_release_group:corda:$corda_release_version"
     
     cordapp project(':business-networks-contracts')
     cordapp project(':business-networks-workflows')
@@ -14,6 +23,24 @@ dependencies {
 jar {
     // Prevent the root project from building an unwanted dummy CorDapp.
     enabled = false
+}
+
+java {
+    sourceCompatibility = VERSION_17
+    targetCompatibility = VERSION_17
+}
+
+compileJava {
+    options.compilerArgs << '-parameters'
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+    compilerOptions {
+        languageVersion = KOTLIN_1_9
+        apiVersion = KOTLIN_1_9
+        jvmTarget = JVM_17
+        javaParameters = true   // Useful for reflection.
+    }
 }
 
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {

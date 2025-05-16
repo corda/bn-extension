@@ -29,7 +29,7 @@ pipeline {
     agent {
         docker {
             // Our custom docker image
-            image 'build-zulu-openjdk:8'
+            image 'build-zulu-openjdk:17'
             label 'docker'
             registryUrl 'https://engineering-docker.software.r3.com/'
             registryCredentialsId 'artifactory-credentials'
@@ -58,12 +58,12 @@ pipeline {
     }
 
     stages {
-        stage('Detekt') {
-            steps {
-                sh "./gradlew clean detekt --info"
-            }
-        }
-        stage('Unit Tests') {
+       stage('Detekt') {
+           steps {
+               sh "./gradlew clean detekt --info"
+           }
+       }
+       stage('Unit Tests') {
             steps {
                 sh "./gradlew clean test --info"
             }

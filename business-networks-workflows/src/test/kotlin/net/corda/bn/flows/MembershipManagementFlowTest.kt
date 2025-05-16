@@ -13,7 +13,6 @@ import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
-import net.corda.core.internal.div
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
@@ -25,13 +24,14 @@ import net.corda.nodeapi.internal.storeLegalIdentity
 import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNodeParameters
-import net.corda.testing.node.internal.TestCordappImpl
+import net.corda.testing.node.internal.ScanPackageTestCordapp
 import net.corda.testing.node.internal.TestStartedNode
 import net.corda.testing.node.internal.startFlow
 import org.junit.After
 import org.junit.Before
 import java.nio.file.Path
 import java.security.PublicKey
+import kotlin.io.path.div
 import kotlin.test.assertNotNull
 
 abstract class MembershipManagementFlowTest(
@@ -46,8 +46,8 @@ abstract class MembershipManagementFlowTest(
     @Before
     fun setUp() {
         mockNetwork = InternalMockNetwork(cordappsForAllNodes = listOf(
-                TestCordappImpl(scanPackage = "net.corda.bn.contracts", config = emptyMap()),
-                TestCordappImpl(scanPackage = "net.corda.bn.flows", config = emptyMap())
+            ScanPackageTestCordapp( "net.corda.bn.contracts"),
+            ScanPackageTestCordapp("net.corda.bn.flows")
         ), initialNetworkParameters = testNetworkParameters(minimumPlatformVersion = 9))
 
         authorisedMembers = (0 until numberOfAuthorisedMembers).mapIndexed { idx, _ ->
@@ -311,7 +311,7 @@ abstract class MembershipManagementFlowTest(
     }
 
 
-    private fun addMemberToInitialGroup(initiator: TestStartedNode, networkId: String, membership: MembershipState, notary: Party?) {    
+    private fun addMemberToInitialGroup(initiator: TestStartedNode, networkId: String, membership: MembershipState, notary: Party?) {
         val bnService = initiator.services.cordaService(BNService::class.java)
         val group = bnService.getAllBusinessNetworkGroups(networkId).minBy { it.state.data.issued }?.state?.data
         assertNotNull(group)

@@ -1,5 +1,3 @@
-apply plugin: 'kotlin-jpa'
-
 description 'Corda Business Networks Contracts'
 
 cordapp {
@@ -14,14 +12,21 @@ cordapp {
 }
 
 dependencies {
-    testCompile("$cordaReleaseGroup:corda-core-test-utils:$cordaVersion") {
-        exclude group: 'co.paralleluniverse', module: 'quasar-core'
-    }
-    testCompile("$cordaReleaseGroup:corda-node-driver:$cordaVersion") {
-        exclude group: 'co.paralleluniverse', module: 'quasar-core'
-    }
-    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
-    testCompile "com.nhaarman:mockito-kotlin:$mockitoKotlinVersion"
-    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    implementation 'javax.persistence:javax.persistence-api:2.2'
+    cordaProvided "$cordaReleaseGroup:corda-core:$cordaVersion"
+    testImplementation"$cordaReleaseGroup:corda-core-test-utils:$cordaVersion"
+    testImplementation "$cordaReleaseGroup:corda-test-utils:$cordaVersion"
+    testImplementation"$cordaReleaseGroup:corda-node-driver:$cordaVersion"
+    testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "junit:junit:$junitVersion"
+}
+
+jar {
+    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+}
+
+test {
+    jvmArgs = rootProject.ext.testJvmArgs
 }
