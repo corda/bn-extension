@@ -49,6 +49,7 @@ buildscript {
 }
 
 plugins {
+    id "com.jfrog.artifactory" version "4.33.1"
     id 'maven-publish'
 }
 
@@ -160,6 +161,23 @@ configure(publishProjects) { subproject ->
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+artifactory {
+    publish {
+        contextUrl = ext.artifactoryContextUrl
+        repository {
+            repoKey = System.getenv('CORDA_ARTIFACTORY_REPOKEY') ?: System.getProperty('corda.artifactory.repokey', 'corda-dev')
+            username = cordaArtifactoryUsername
+            password = cordaArtifactoryPassword
+        }
+
+        defaults {
+            if (publishProjects.contains(project)) {
+                publications(project.name)
             }
         }
     }
