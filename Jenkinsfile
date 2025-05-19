@@ -43,7 +43,6 @@ pipeline {
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
         SNYK_TOKEN = credentials("corda4-os-snyk-secret")
         C4_OS_SNYK_ORG_ID = credentials("corda4-os-snyk-org-id")
-        GRADLE_USER_HOME = "/host_tmp/gradle"
         JAVA_HOME="/usr/lib/jvm/java-17-amazon-corretto"
     }
 
