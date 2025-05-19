@@ -38,16 +38,6 @@ buildscript {
         maven { url "$publicArtifactURL/corda-releases" }
         maven { url "$publicArtifactURL/corda-dev" }
         maven { url 'https://repo.gradle.org/gradle/libs-releases' }
-        maven {
-            url "${artifactoryContextUrl}/engineering-tools-maven"
-            authentication {
-                basic(BasicAuthentication)
-            }
-            credentials {
-                username = System.getenv('CORDA_ARTIFACTORY_USERNAME')
-                password = System.getenv('CORDA_ARTIFACTORY_PASSWORD')
-            }
-        }
     }
 
     dependencies {
@@ -78,6 +68,7 @@ allprojects {
     apply plugin: 'net.corda.plugins.quasar-utils'
     apply plugin: 'net.corda.plugins.cordapp'
     apply plugin: 'org.jetbrains.kotlin.jvm'
+    apply plugin: 'maven-publish'
     apply plugin: 'net.corda.plugins.cordformation'
 
     version projectVersion
