@@ -36,8 +36,8 @@ pipeline {
 
     environment {
         ARTIFACTORY_CREDENTIALS = credentials('artifactory-credentials')
-        CORDA_ARTIFACTORY_USERNAME = "${env.CORDA_ARTIFACTORY_USERNAME}"
-        CORDA_ARTIFACTORY_PASSWORD = "${env.CORDA_ARTIFACTORY_PASSWORD}"
+        CORDA_ARTIFACTORY_USERNAME = "${env.ARTIFACTORY_CREDENTIALS_USR}"
+        CORDA_ARTIFACTORY_PASSWORD = "${env.ARTIFACTORY_CREDENTIALS_PSW}"
         ARTIFACTORY_BUILD_NAME = "DisasterRecovery/Jenkins/${!isRelease?"snapshot/":""}${env.BRANCH_NAME}".replaceAll("/", " :: ")
         PUBLISH_REPO = "${isRelease?"corda-releases":"corda-dev"}"
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
