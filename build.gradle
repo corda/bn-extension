@@ -49,7 +49,7 @@ buildscript {
 }
 
 plugins {
-    id 'maven-publish'
+    id 'corda.root-publish'
 }
 
 // You can define this property in ~/.gradle/gradle.properties on your dev box.
@@ -125,6 +125,7 @@ dependencies {
 def publishProjects = subprojects
 
 configure(publishProjects) { subproject ->
+    apply plugin: 'corda.common-publishing'
 
     task sourceJar(type: Jar, dependsOn: subproject.classes) {
         archiveClassifier = 'sources'

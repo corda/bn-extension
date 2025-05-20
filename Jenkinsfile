@@ -26,18 +26,7 @@ boolean isReleaseBranch = (env.BRANCH_NAME =~ /^release\/.*/)
 boolean isRelease = (env.TAG_NAME =~ /^release-.*/)
 
 pipeline {
-    agent {
-        docker {
-            // Our custom docker image
-            image 'build-zulu-openjdk:17'
-            label 'docker'
-            registryUrl 'https://engineering-docker.software.r3.com/'
-            registryCredentialsId 'artifactory-credentials'
-            // Used to mount storage from the host as a volume to persist the cache between builds
-            args '-v /tmp:/host_tmp'
-            alwaysPull true
-        }
-    }
+    agent { label 'standard' }
 
     parameters {
         booleanParam defaultValue: (isReleaseBranch || isRelease), description: 'Publish artifacts to Artifactory?', name: 'DO_PUBLISH'
@@ -47,14 +36,14 @@ pipeline {
 
     environment {
         ARTIFACTORY_CREDENTIALS = credentials('artifactory-credentials')
-        CORDA_ARTIFACTORY_USERNAME = "${env.CORDA_ARTIFACTORY_USERNAME}"
-        CORDA_ARTIFACTORY_PASSWORD = "${env.CORDA_ARTIFACTORY_PASSWORD}"
+        CORDA_ARTIFACTORY_USERNAME = "${env.ARTIFACTORY_CREDENTIALS_USR}"
+        CORDA_ARTIFACTORY_PASSWORD = "${env.ARTIFACTORY_CREDENTIALS_PSW}"
         ARTIFACTORY_BUILD_NAME = "DisasterRecovery/Jenkins/${!isRelease?"snapshot/":""}${env.BRANCH_NAME}".replaceAll("/", " :: ")
         PUBLISH_REPO = "${isRelease?"corda-releases":"corda-dev"}"
         EXECUTOR_NUMBER = "${env.EXECUTOR_NUMBER}"
         SNYK_TOKEN = credentials("corda4-os-snyk-secret")
         C4_OS_SNYK_ORG_ID = credentials("corda4-os-snyk-org-id")
-        GRADLE_USER_HOME = "/host_tmp/gradle"
+        JAVA_HOME="/usr/lib/jvm/java-17-amazon-corretto"
     }
 
     stages {
