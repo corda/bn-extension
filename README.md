@@ -33,8 +33,9 @@ Remember to add both dependencies in your Cordform (i.e. `deployNodes`) task.
 ## Building against Corda 4.12 and 4.15
 
 The extension builds and runs on Corda 4.12 (Hibernate 5, `javax.persistence`) and Corda 4.15 (Hibernate 7, `jakarta.persistence`)
-from one source tree: the `javax.persistence` and `jakarta.persistence` APIs are compile-only dependencies that are neither bundled
-nor listed in the published POMs, and the node provides the one its Hibernate version implements. There is no Hibernate dependency.
+from one source tree: the schema entities carry both sets of annotations, the `javax.persistence` and `jakarta.persistence` APIs are
+compile-only dependencies that are neither bundled nor listed in the published POMs, and the node provides the one its Hibernate
+version implements. There is no Hibernate dependency.
 
 The Corda version to build and test against is the `cordaVersion` Gradle property. The default is in `gradle.properties`; the command
 line overrides it:
