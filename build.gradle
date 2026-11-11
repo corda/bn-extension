@@ -9,10 +9,10 @@ buildscript {
     file("$projectDir/gradle.properties").withInputStream { constants.load(it) }
 
     ext {
-        corda_release_group = constants.getProperty("cordaReleaseGroup")
-        corda_release_version = constants.getProperty("cordaVersion")
-        corda_core_release_group = constants.getProperty("cordaReleaseGroup")
-        corda_core_release_version = constants.getProperty("cordaVersion")
+        // The Corda version and group are the cordaVersion and cordaReleaseGroup project properties: the default is in
+        // gradle.properties and -PcordaVersion=4.15-RC02 on the command line overrides it (a value read from the file here
+        // would not be overridable). A jar built against 4.12 runs on 4.12 and 4.15 nodes; one built against 4.15 runs on
+        // 4.15 only.
         corda_gradle_plugins_version = constants.getProperty("cordaGradlePluginsVersion")
         kotlin_version = constants.getProperty("kotlinVersion")
         junit_version = constants.getProperty("junitVersion")
@@ -83,9 +83,27 @@ allprojects {
         maven { url "$publicArtifactURL/corda-releases" }
         maven { url "$publicArtifactURL/corda-dev" }
         maven { url "$publicArtifactURL/corda-lib-dev" }
+        // Corda release candidates (for example 4.15-RC02) that are not on the public download site.
+        maven {
+            url "${artifactoryContextUrl}/corda-releases"
+            authentication {
+                basic(BasicAuthentication)
+            }
+            credentials {
+                username = System.getenv('CORDA_ARTIFACTORY_USERNAME')
+                password = System.getenv('CORDA_ARTIFACTORY_PASSWORD')
+            }
+        }
 
         // Required to resolve dependencies for corda-node-driver 4.1+
         maven { url "https://repo.gradle.org/gradle/libs-releases-local" }
+    }
+
+    tasks.withType(Test).configureEach {
+        // TestCordapp.findCordapp and ScanPackageTestCordapp build a sibling project's jar in a nested Gradle build (Tooling
+        // API) from inside the test JVM, which inherits the environment but not the command line: hand the Corda version
+        // over, or the nested build rebuilds the jar against the default version and overwrites it under the running tests.
+        environment 'ORG_GRADLE_PROJECT_cordaVersion', cordaVersion
     }
 
     tasks.withType(KotlinCompile).configureEach {
@@ -119,7 +137,7 @@ dependencies {
         exclude group: "ch.qos.logback", module: "logback-classic"
     }
     corda "$cordaReleaseGroup:corda:$cordaVersion"
-    cordaProvided "net.corda:corda-jackson:$corda_release_version"
+    cordaProvided "$cordaReleaseGroup:corda-jackson:$cordaVersion"
 }
 
 def publishProjects = subprojects
