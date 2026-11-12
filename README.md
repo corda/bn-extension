@@ -30,6 +30,25 @@ dependencies {
 
 Remember to add both dependencies in your Cordform (i.e. `deployNodes`) task.
 
+## Building against Corda 4.12 and 4.15
+
+The extension builds and runs on Corda 4.12 (Hibernate 5, `javax.persistence`) and Corda 4.15 (Hibernate 7, `jakarta.persistence`)
+from one source tree: the schema entities carry both sets of annotations, the `javax.persistence` and `jakarta.persistence` APIs are
+compile-only dependencies that are neither bundled nor listed in the published POMs, and the node provides the one its Hibernate
+version implements. There is no Hibernate dependency.
+
+The Corda version to build and test against is the `cordaVersion` Gradle property. The default is in `gradle.properties`; the command
+line overrides it:
+
+```bash
+./gradlew clean build -PcordaVersion=4.15-RC02
+```
+
+Corda release candidates that are not on the public download site resolve from the `corda-releases` repository on `software.r3.com`,
+using the `CORDA_ARTIFACTORY_USERNAME` and `CORDA_ARTIFACTORY_PASSWORD` environment variables.
+
+A jar built against Corda 4.12 (the default) runs on 4.12 and 4.15 nodes; a jar built against 4.15 runs on 4.15 only.
+
 ## Creating and managing a business network
 
 BNE provides a set of workflows that allows a user to start a business network, on-board members and assign them to membership lists or groups. The flows can also be used to update the information

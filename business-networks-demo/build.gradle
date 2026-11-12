@@ -9,10 +9,10 @@ description 'Corda Business Networks Integration demo'
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 
-    cordaBootstrapper ("$corda_release_group:corda-node-api:$corda_release_version") {
+    cordaBootstrapper ("$cordaReleaseGroup:corda-node-api:$cordaVersion") {
         exclude group: "ch.qos.logback", module: "logback-classic"
     }
-    corda "$corda_release_group:corda:$corda_release_version"
+    corda "$cordaReleaseGroup:corda:$cordaVersion"
     
     cordapp project(':business-networks-contracts')
     cordapp project(':business-networks-workflows')
